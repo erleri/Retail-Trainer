@@ -630,74 +630,91 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                     )}
                 </AnimatePresence>
 
-                {/* Floating Guide Panel - Mobile/Tablet (xl: hidden) */}
+                {/* Bottom Sheet Guide Panel - Mobile/Tablet (xl: hidden) */}
                 <AnimatePresence mode="wait">
                     {showGuide && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="xl:hidden fixed top-24 right-4 left-4 max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-200 max-h-80 flex flex-col z-20 pointer-events-auto"
-                        >
-                            <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center sticky top-0">
-                                <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
-                                    <Lightbulb size={16} className="text-yellow-500" />
-                                    {tLab.guide}
-                                </h3>
-                                <button onClick={() => setShowGuide(false)} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
-                                    <X size={18} />
-                                </button>
-                            </div>
+                        <>
+                            {/* Backdrop */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowGuide(false)}
+                                className="xl:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+                            />
 
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                                {/* Current Strategy */}
-                                <div className="space-y-1.5">
-                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.stageStrategy}</h4>
-                                    <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100 text-xs text-blue-800 leading-relaxed">
-                                        {tLab.strategies[currentStep]}
+                            {/* Bottom Sheet */}
+                            <motion.div
+                                initial={{ y: "100%" }}
+                                animate={{ y: 0 }}
+                                exit={{ y: "100%" }}
+                                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                                className="xl:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-gray-100 max-h-[70vh] flex flex-col z-50"
+                            >
+                                {/* Drag Handle */}
+                                <div className="w-full flex justify-center pt-3 pb-1" onClick={() => setShowGuide(false)}>
+                                    <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+                                </div>
+
+                                <div className="px-5 pb-4 border-b border-gray-50 flex justify-between items-center">
+                                    <h3 className="font-bold text-gray-800 flex items-center gap-2 text-base">
+                                        <Lightbulb size={18} className="text-yellow-500" />
+                                        {tLab.guide}
+                                    </h3>
+                                    <button onClick={() => setShowGuide(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar pb-10">
+                                    {/* Current Strategy */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.stageStrategy}</h4>
+                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 text-sm text-blue-800 leading-relaxed">
+                                            {tLab.strategies[currentStep]}
+                                        </div>
+                                    </div>
+
+                                    {/* Objection Hint */}
+                                    <AnimatePresence>
+                                        {objectionHint && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                className="space-y-2"
+                                            >
+                                                <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
+                                                    <Sparkles size={12} /> {tLab.objectionHint}
+                                                </h4>
+                                                <div className="p-4 bg-red-50/50 rounded-xl border border-red-100 text-sm text-red-800 leading-relaxed shadow-sm">
+                                                    {objectionHint}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* Selling Points */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.sellingPoints}</h4>
+                                        <ul className="space-y-3">
+                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                                <span>AI Processor Alpha 11</span>
+                                            </li>
+                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                                <span>Brightness Booster Max</span>
+                                            </li>
+                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                                <span>One Wall Design</span>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </div>
-
-                                {/* Objection Hint */}
-                                <AnimatePresence>
-                                    {objectionHint && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="space-y-1.5"
-                                        >
-                                            <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                                                <Sparkles size={10} /> {tLab.objectionHint}
-                                            </h4>
-                                            <div className="p-3 bg-red-50/50 rounded-lg border border-red-100 text-xs text-red-800 leading-relaxed shadow-sm">
-                                                {objectionHint}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-
-                                {/* Selling Points */}
-                                <div className="space-y-1.5">
-                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.sellingPoints}</h4>
-                                    <ul className="space-y-2">
-                                        <li className="flex gap-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-md border border-gray-100">
-                                            <CheckCircle2 size={12} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                            <span>AI Processor Alpha 11</span>
-                                        </li>
-                                        <li className="flex gap-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-md border border-gray-100">
-                                            <CheckCircle2 size={12} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                            <span>Brightness Booster Max</span>
-                                        </li>
-                                        <li className="flex gap-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-md border border-gray-100">
-                                            <CheckCircle2 size={12} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                            <span>One Wall Design</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </motion.div>
+                            </motion.div>
+                        </>
                     )}
                 </AnimatePresence>
             </div>
