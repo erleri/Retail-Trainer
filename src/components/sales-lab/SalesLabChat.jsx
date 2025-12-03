@@ -488,9 +488,10 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
 
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden relative">
-                {/* Chat Area */}
+                {/* Chat Area - Full width on mobile, constrained on desktop */}
                 <div className="flex-1 flex flex-col relative z-0 min-w-0">
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 scroll-smooth">
+                    {/* Messages Container - Always scrollable */}
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth pb-56 md:pb-44 lg:pb-32">
                         <div className="max-w-3xl mx-auto space-y-6">
                             {messages.map((msg, index) => (
                                 <ChatMessage key={index} message={msg} />
@@ -556,7 +557,7 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                     </div>
                 </div>
 
-                {/* Side Guide Panel (Split View) */}
+                {/* Side Guide Panel - Desktop Only (xl: screens and above) */}
                 <AnimatePresence mode="wait">
                     {showGuide && (
                         <motion.div
@@ -564,7 +565,7 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                             animate={{ width: 320, opacity: 1 }}
                             exit={{ width: 0, opacity: 0 }}
                             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                            className="border-l border-gray-200 bg-white/50 backdrop-blur-sm flex flex-col z-10"
+                            className="hidden xl:flex border-l border-gray-200 bg-white/50 backdrop-blur-sm flex-col z-10"
                         >
                             <div className="w-80 flex flex-col h-full">
                                 <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
@@ -623,6 +624,77 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                                             </li>
                                         </ul>
                                     </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Floating Guide Panel - Mobile/Tablet (xl: hidden) */}
+                <AnimatePresence mode="wait">
+                    {showGuide && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="xl:hidden fixed top-24 right-4 left-4 max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-200 max-h-80 flex flex-col z-20 pointer-events-auto"
+                        >
+                            <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center sticky top-0">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
+                                    <Lightbulb size={16} className="text-yellow-500" />
+                                    {tLab.guide}
+                                </h3>
+                                <button onClick={() => setShowGuide(false)} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                                {/* Current Strategy */}
+                                <div className="space-y-1.5">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.stageStrategy}</h4>
+                                    <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100 text-xs text-blue-800 leading-relaxed">
+                                        {tLab.strategies[currentStep]}
+                                    </div>
+                                </div>
+
+                                {/* Objection Hint */}
+                                <AnimatePresence>
+                                    {objectionHint && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="space-y-1.5"
+                                        >
+                                            <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
+                                                <Sparkles size={10} /> {tLab.objectionHint}
+                                            </h4>
+                                            <div className="p-3 bg-red-50/50 rounded-lg border border-red-100 text-xs text-red-800 leading-relaxed shadow-sm">
+                                                {objectionHint}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Selling Points */}
+                                <div className="space-y-1.5">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.sellingPoints}</h4>
+                                    <ul className="space-y-2">
+                                        <li className="flex gap-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-md border border-gray-100">
+                                            <CheckCircle2 size={12} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                            <span>AI Processor Alpha 11</span>
+                                        </li>
+                                        <li className="flex gap-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-md border border-gray-100">
+                                            <CheckCircle2 size={12} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                            <span>Brightness Booster Max</span>
+                                        </li>
+                                        <li className="flex gap-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-md border border-gray-100">
+                                            <CheckCircle2 size={12} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                            <span>One Wall Design</span>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </motion.div>
