@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Image as ImageIcon, Volume2, StopCircle, MicOff, Play, BookOpen, AlertCircle, ArrowRight, HelpCircle, FileText, Scale, ShieldCheck, Trash2 } from 'lucide-react';
+import { Send, Mic, Image as ImageIcon, Volume2, StopCircle, MicOff, Play, BookOpen, AlertCircle, ArrowRight, HelpCircle, FileText, Scale, ShieldCheck, Trash2, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { clsx } from 'clsx';
@@ -307,6 +307,15 @@ export default function AIChatbot() {
 
 
 
+  const [expandedMessages, setExpandedMessages] = useState({});
+
+  const toggleMessageDetails = (msgId) => {
+    setExpandedMessages(prev => ({
+      ...prev,
+      [msgId]: !prev[msgId]
+    }));
+  };
+
   const handleClearChat = () => {
     useChatStore.getState().clearMessages();
     hasInitialized.current = false;
@@ -314,24 +323,24 @@ export default function AIChatbot() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] gap-4">
+    <div className="flex flex-col h-[calc(100vh-140px)] gap-2 md:gap-4">
       {/* Weakness Indicator Panel (Top) */}
       {weakness && (
-        <div className="bg-gradient-to-r from-red-50 to-white border border-red-100 rounded-xl p-4 flex items-center justify-between animate-in slide-in-from-top-2 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-lg text-red-500 shadow-sm">
-              <AlertCircle size={20} />
+        <div className="bg-gradient-to-r from-red-50 to-white border border-red-100 rounded-lg md:rounded-xl p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 animate-in slide-in-from-top-2 shadow-sm">
+          <div className="flex items-start gap-2 md:gap-3 flex-1">
+            <div className="p-1.5 md:p-2 bg-white rounded-lg text-red-500 shadow-sm flex-shrink-0">
+              <AlertCircle size={18} className="md:w-5 md:h-5" />
             </div>
-            <div>
-              <p className="text-sm font-bold text-red-900">Weakness Detected: {weakness.category}</p>
-              <p className="text-xs text-red-700">Accuracy is low ({weakness.score}%). Recommended: {weakness.recommendedAction.title}</p>
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm font-bold text-red-900">Weakness: {weakness.category}</p>
+              <p className="text-xs text-red-700 truncate">Accuracy low ({weakness.score}%). {weakness.recommendedAction.title}</p>
             </div>
           </div>
           <button
             onClick={() => navigate(weakness.recommendedAction.link)}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-red-600 text-xs font-bold rounded-lg hover:bg-red-50 transition-colors border border-red-200 shadow-sm hover:shadow-md"
+            className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white text-red-600 text-xs md:text-xs font-bold rounded-lg hover:bg-red-50 transition-colors border border-red-200 shadow-sm hover:shadow-md flex-shrink-0 whitespace-nowrap"
           >
-            Start Learning <ArrowRight size={14} />
+            Learn <ArrowRight size={14} />
           </button>
         </div>
       )}
@@ -340,92 +349,160 @@ export default function AIChatbot() {
         <div className="flex-1 flex flex-col glass-card rounded-2xl shadow-sm border border-white/20 overflow-hidden min-w-0 bg-white/50 backdrop-blur-sm">
           {/* Header */}
           <div className="border-b border-gray-100 bg-white/80 backdrop-blur-md">
-            <div className="p-4 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+            <div className="p-3 md:p-4 flex justify-between items-center">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner text-lg md:text-xl">
                   🎓
                 </div>
-                <div>
+                <div className="hidden md:block">
                   <h2 className="font-bold text-text-primary">AI Tutor</h2>
                   <p className="text-xs text-text-secondary flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-glow" /> Online
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-1 md:gap-2 items-center">
                 {isSpeaking && (
-                  <button onClick={stopSpeaking} className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors animate-pulse">
-                    <Volume2 size={20} />
+                  <button onClick={stopSpeaking} className="p-1.5 md:p-2 text-primary hover:bg-primary/10 rounded-full transition-colors animate-pulse flex-shrink-0">
+                    <Volume2 size={18} className="md:w-5 md:h-5" />
                   </button>
                 )}
                 <button
                   onClick={() => setIsAutoMode(!isAutoMode)}
                   className={clsx(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm",
+                    "flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm flex-shrink-0",
                     isAutoMode
                       ? "bg-primary/10 text-primary border-primary/20 shadow-glow"
                       : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
                   )}
                 >
                   {isAutoMode ? <Mic size={14} /> : <FileText size={14} />}
-                  {isAutoMode ? "Voice" : "Text"}
+                  <span className="hidden sm:inline">{isAutoMode ? "Voice" : "Text"}</span>
                 </button>
                 <button
                   onClick={handleClearChat}
-                  className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                  className="p-1.5 md:p-2 text-text-secondary hover:text-red-500 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
                   title="Clear Chat"
                 >
-                  <Trash2 size={20} />
+                  <Trash2 size={18} className="md:w-5 md:h-5" />
                 </button>
-                <button className="text-text-secondary hover:text-primary transition-colors">
+                <button className="p-1.5 md:p-2 text-text-secondary hover:text-primary transition-colors flex-shrink-0">
                   <SettingsIcon />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
-            {messages.map((msg) => (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                key={msg.id}
-                className={clsx(
-                  "flex gap-4 max-w-[90%] md:max-w-[80%] group",
-                  msg.role === 'user' ? "ml-auto flex-row-reverse" : ""
-                )}
-              >
-                <div className={clsx(
-                  "w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm shadow-sm transition-transform group-hover:scale-110",
-                  msg.role === 'user' ? "bg-gradient-to-br from-secondary to-secondary-hover text-white" : "bg-gradient-to-br from-primary to-primary-hover text-white"
-                )}>
-                  {msg.role === 'user' ? 'ME' : 'AI'}
-                </div>
-                <div className={clsx(
-                  "p-5 rounded-2xl shadow-sm text-sm leading-relaxed prose prose-sm max-w-none",
-                  msg.role === 'user'
-                    ? "bg-gradient-to-br from-secondary to-secondary-hover text-white rounded-tr-none prose-invert shadow-lg shadow-secondary/20"
-                    : "glass-card border-none text-text-primary rounded-tl-none bg-white/80"
-                )}>
-                  {msg.role === 'ai' ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        table: ({ ...props }) => <table className="border-collapse border border-gray-200 w-full my-2" {...props} />,
-                        th: ({ ...props }) => <th className="border border-gray-200 bg-gray-50 p-2 text-left font-bold" {...props} />,
-                        td: ({ ...props }) => <td className="border border-gray-200 p-2" {...props} />,
-                        strong: ({ ...props }) => <strong className="font-bold text-primary" {...props} />
-                      }}
-                    >
-                      {msg.text}
-                    </ReactMarkdown>
-                  ) : (
-                    msg.text
-                  )}
-                </div>
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50/50">
+            {messages.map((msg) => {
+              // Parse AI response to separate core summary and details
+              const parseAIResponse = (text) => {
+                if (msg.role === 'user') return { summary: text, details: null };
 
-              </motion.div>
-            ))}
+                const summaryMatch = text.match(/### 📌 핵심 요약.*?(?=###|---SPEECH---|$)/s);
+                const tipsMatch = text.match(/### 🔧 실전 팁.*?(?=###|---SPEECH---|$)/s);
+                const scriptMatch = text.match(/\[실전 스크립트.*?(?=###|---SPEECH---|$)/s);
+                const detailsMatch = text.match(/### 📚 상세 정보.*?(?=---SPEECH---|$)/s);
+
+                let summary = text;
+                let details = null;
+
+                if (summaryMatch) {
+                  summary = summaryMatch[0];
+                  if (tipsMatch) summary += '\n' + tipsMatch[0];
+                  if (scriptMatch) summary += '\n' + scriptMatch[0];
+                  if (detailsMatch) details = detailsMatch[0];
+                }
+
+                return { summary, details };
+              };
+
+              const { summary, details } = parseAIResponse(msg.text);
+              const isExpanded = expandedMessages[msg.id] || false;
+
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={msg.id}
+                  className={clsx(
+                    "flex gap-3 md:gap-4 max-w-[95%] md:max-w-[80%]",
+                    msg.role === 'user' ? "ml-auto flex-row-reverse" : ""
+                  )}
+                >
+                  <div className={clsx(
+                    "w-7 h-7 md:w-8 md:h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs md:text-sm shadow-sm transition-transform group-hover:scale-110 font-semibold",
+                    msg.role === 'user' ? "bg-gradient-to-br from-secondary to-secondary-hover text-white" : "bg-gradient-to-br from-primary to-primary-hover text-white"
+                  )}>
+                    {msg.role === 'user' ? 'ME' : 'AI'}
+                  </div>
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className={clsx(
+                      "p-3 md:p-5 rounded-2xl shadow-sm text-xs md:text-sm leading-relaxed prose prose-sm max-w-none",
+                      msg.role === 'user'
+                        ? "bg-gradient-to-br from-secondary to-secondary-hover text-white rounded-tr-none prose-invert shadow-lg shadow-secondary/20 ml-auto"
+                        : "glass-card border-none text-text-primary rounded-tl-none bg-white/80"
+                    )}>
+                      {msg.role === 'ai' ? (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            table: ({ ...props }) => <table className="border-collapse border border-gray-200 w-full my-2 text-xs" {...props} />,
+                            th: ({ ...props }) => <th className="border border-gray-200 bg-gray-50 p-2 text-left font-bold" {...props} />,
+                            td: ({ ...props }) => <td className="border border-gray-200 p-2" {...props} />,
+                            strong: ({ ...props }) => <strong className="font-bold text-primary" {...props} />,
+                            p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />
+                          }}
+                        >
+                          {summary}
+                        </ReactMarkdown>
+                      ) : (
+                        msg.text
+                      )}
+                    </div>
+
+                    {/* Show Details Button */}
+                    {details && msg.role === 'ai' && (
+                      <button
+                        onClick={() => toggleMessageDetails(msg.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-primary hover:text-primary-hover font-semibold text-xs transition-colors"
+                      >
+                        <span>{isExpanded ? '상세 정보 숨기기' : '📖 상세 정보 보기'}</span>
+                        <ChevronDown
+                          size={14}
+                          className={clsx(
+                            "transition-transform",
+                            isExpanded ? "rotate-180" : ""
+                          )}
+                        />
+                      </button>
+                    )}
+
+                    {/* Expanded Details */}
+                    {details && msg.role === 'ai' && isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 md:p-4 bg-blue-50 border-l-4 border-blue-300 rounded-r-lg text-xs md:text-sm prose prose-sm max-w-none"
+                      >
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            table: ({ ...props }) => <table className="border-collapse border border-gray-200 w-full my-2 text-xs" {...props} />,
+                            th: ({ ...props }) => <th className="border border-gray-200 bg-gray-50 p-2 text-left font-bold" {...props} />,
+                            td: ({ ...props }) => <td className="border border-gray-200 p-2" {...props} />,
+                            strong: ({ ...props }) => <strong className="font-bold text-primary" {...props} />,
+                            p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />
+                          }}
+                        >
+                          {details}
+                        </ReactMarkdown>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
 
             {/* Recommended Topics (Show only when just welcome message exists) */}
             {messages.length === 1 && messages[0].role === 'ai' && (
@@ -433,13 +510,13 @@ export default function AIChatbot() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="flex flex-wrap gap-2 mt-4 ml-12"
+                className="flex flex-wrap gap-2 mt-4 ml-0 md:ml-12"
               >
                 {recommendedTopics.map((topic) => (
                   <button
                     key={topic.id}
                     onClick={() => handleTopicClick(topic.text)}
-                    className="px-4 py-2 bg-white border border-primary/20 text-primary text-sm font-bold rounded-full hover:bg-primary/5 hover:scale-105 transition-all shadow-sm"
+                    className="px-3 md:px-4 py-2 bg-white border border-primary/20 text-primary text-xs md:text-sm font-bold rounded-full hover:bg-primary/5 hover:scale-105 transition-all shadow-sm"
                   >
                     {topic.text}
                   </button>
@@ -459,19 +536,19 @@ export default function AIChatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-4 bg-white/80 backdrop-blur-md border-t border-gray-100">
-            <div className="flex gap-2 items-center bg-gray-50/50 p-2 rounded-2xl border border-gray-200 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20 transition-all shadow-inner">
-              <button className="p-2 text-text-light hover:text-primary transition-colors">
-                <ImageIcon size={20} />
+          <div className="p-3 md:p-4 bg-white/80 backdrop-blur-md border-t border-gray-100">
+            <div className="flex gap-1 md:gap-2 items-center bg-gray-50/50 p-2 rounded-2xl border border-gray-200 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20 transition-all shadow-inner">
+              <button className="p-1.5 md:p-2 text-text-light hover:text-primary transition-colors flex-shrink-0">
+                <ImageIcon size={18} className="md:w-5 md:h-5" />
               </button>
               <button
                 onClick={toggleListening}
                 className={clsx(
-                  "p-2 transition-colors rounded-full",
+                  "p-1.5 md:p-2 transition-colors rounded-full flex-shrink-0",
                   isListening ? "bg-red-100 text-red-500 animate-pulse" : "text-text-light hover:text-primary"
                 )}
               >
-                {isListening ? <StopCircle size={20} /> : <Mic size={20} />}
+                {isListening ? <StopCircle size={18} className="md:w-5 md:h-5" /> : <Mic size={18} className="md:w-5 md:h-5" />}
               </button>
               <input
                 type="text"
@@ -479,14 +556,14 @@ export default function AIChatbot() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder={isListening ? (language === 'en' ? "Listening..." : (language === 'ko' ? "듣고 있습니다..." : (language === 'es' ? "Escuchando..." : "Ouvindo..."))) : (language === 'en' ? "Type your response..." : (language === 'ko' ? "메시지를 입력하세요..." : (language === 'es' ? "Escribe tu respuesta..." : "Digite sua resposta...")))}
-                className="flex-1 bg-transparent border-none focus:ring-0 text-text-primary placeholder:text-text-light text-lg"
+                className="flex-1 bg-transparent border-none focus:ring-0 text-text-primary placeholder:text-text-light text-sm md:text-lg"
               />
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim()}
-                className="p-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+                className="p-2 md:p-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md flex-shrink-0"
               >
-                <Send size={20} />
+                <Send size={18} className="md:w-5 md:h-5" />
               </button>
             </div>
           </div>

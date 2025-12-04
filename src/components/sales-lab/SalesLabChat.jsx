@@ -247,16 +247,45 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                 textToSend,
                 language,
                 true,
-                (chunk) => setStreamingText(prev => prev + chunk)
+                (chunk) => setStreamingText(prev => prev + chunk),
+                messages  // Pass conversation history for context
             );
 
             setMessages(prev => [...prev, { role: 'ai', text: response.text }]);
             setStreamingText('');
             speakText(response.speech);
 
+            // Enhanced session end detection
             const lowerResponse = response.text.toLowerCase();
-            const endKeywords = ['goodbye', 'bye', 'see you', '안녕', '가볼게요', '다음에', 'adios', 'tchau'];
-            if (currentStep === 'closing' && endKeywords.some(k => lowerResponse.includes(k))) {
+            
+            // Multi-language end keywords with more variations
+            const endKeywords = {
+                en: ['goodbye', 'bye', 'see you', 'take care', 'have a nice day', 'farewell', 'see ya', 'catch you'],
+                ko: ['안녕', '안녕히', '가볼게요', '다음에', '잘 가세요', '뵙겠습니다', '안녕히 가세요', '그럼 이만'],
+                es: ['adiós', 'bye', 'hasta luego', 'nos vemos', 'que te vaya bien', 'chao'],
+                pt: ['tchau', 'adeus', 'até logo', 'até breve', 'falou', 'até mais']
+            };
+
+            const langKeywords = endKeywords[language] || [...endKeywords.en, ...endKeywords.ko];
+            const isEnding = langKeywords.some(k => lowerResponse.includes(k.toLowerCase()));
+
+            // Also check if customer is showing buying signals or agreement
+            const closingKeywords = {
+                en: ['perfect', 'great', 'sounds good', 'i\'ll take it', 'let\'s do it', 'count me in', 'deal', 'yes please', 'absolutely'],
+                ko: ['좋습니다', '괜찮습니다', '그렇게', '진행', '괜찮아요', '됐어요', '네 좋습니다', '그럴게요'],
+                es: ['perfecto', 'está bien', 'me lo llevo', 'de acuerdo', 'claro'],
+                pt: ['perfeito', 'tá bom', 'vou levar', 'combinado', 'claro']
+            };
+
+            const closingLangKeywords = closingKeywords[language] || [...closingKeywords.en, ...closingKeywords.ko];
+            const isClosing = closingLangKeywords.some(k => lowerResponse.includes(k.toLowerCase()));
+
+            // Session ends if:
+            // 1. Customer says goodbye (direct ending)
+            // 2. Customer agrees to buy AND we're in closing stage (natural ending)
+            // 3. Conversation has reached 20+ exchanges (timeout)
+            if (isEnding || (isClosing && currentStep === 'closing') || messages.length >= 40) {
+                console.log("Session ending triggered:", { isEnding, isClosing, currentStep, messageCount: messages.length });
                 setIsSessionEnded(true);
                 setIsAutoMode(false);
             }
@@ -345,8 +374,8 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
     useEffect(() => {
         if (!voicesLoaded) return;
 
-        // Skip initialization if resuming a session
-        if (initialState) return;
+        // Skip initialization if we already have messages or resuming a session
+        if (messages.length > 0 || initialState) return;
 
         const initChat = async () => {
             setIsProcessing(true);
@@ -362,7 +391,7 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
             }
         };
         initChat();
-    }, [config, language, speakText, t.common.error, voicesLoaded, initialState]);
+    }, [voicesLoaded]); // Only depend on voicesLoaded to prevent re-initialization
 
     const handleExitAttempt = () => {
         window.speechSynthesis.cancel();
@@ -504,49 +533,69 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                     {/* Floating Input Bar */}
                     <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-white via-white/90 to-transparent pt-12">
                         <div className="max-w-3xl mx-auto">
-                            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-2 flex items-center gap-2 relative">
-                                {/* Auto Mode Toggle */}
-                                <button
-                                    onClick={toggleListening}
-                                    className={clsx(
-                                        "p-3 rounded-xl transition-all duration-300 flex items-center gap-2",
-                                        isAutoMode
-                                            ? isListening ? "bg-red-50 text-red-500" : "bg-primary/10 text-primary"
-                                            : "hover:bg-gray-100 text-gray-500"
-                                    )}
-                                    title="Auto Conversation Mode"
-                                >
-                                    {isAutoMode ? (
-                                        isListening ? (
-                                            <>
-                                                <span className="relative flex h-3 w-3">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                                </span>
-                                                <span className="text-xs font-bold">ON AIR</span>
-                                            </>
-                                        ) : <MicOff size={20} />
-                                    ) : <Mic size={20} />}
-                                </button>
+                            <div className="flex flex-col gap-3">
+                                {/* End Session Button - Visible when session is active */}
+                                {messages.length > 2 && !isSessionEnded && (
+                                    <button
+                                        onClick={handleEndSession}
+                                        disabled={isProcessing}
+                                        className="w-full px-4 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 font-semibold text-sm rounded-xl transition-all border border-orange-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        🏁 대화 종료 및 평가하기
+                                    </button>
+                                )}
 
-                                <input
-                                    type="text"
-                                    ref={inputRef}
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder={isAutoMode ? tLab.listening : tLab.inputPlaceholder}
-                                    className="flex-1 bg-transparent border-none focus:ring-0 text-gray-800 placeholder-gray-400"
-                                    disabled={isProcessing || isAutoMode || isSessionEnded}
-                                />
+                                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-2 flex items-center gap-2 relative">
+                                    {/* Auto Mode Toggle */}
+                                    <button
+                                        onClick={toggleListening}
+                                        className={clsx(
+                                            "p-3 rounded-xl transition-all duration-300 flex items-center gap-2",
+                                            isAutoMode
+                                                ? isListening ? "bg-red-50 text-red-500" : "bg-primary/10 text-primary"
+                                                : "hover:bg-gray-100 text-gray-500"
+                                        )}
+                                        title="Auto Conversation Mode"
+                                    >
+                                        {isAutoMode ? (
+                                            isListening ? (
+                                                <>
+                                                    <span className="relative flex h-3 w-3">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                    </span>
+                                                    <span className="text-xs font-bold">ON AIR</span>
+                                                </>
+                                            ) : <MicOff size={20} />
+                                        ) : <Mic size={20} />}
+                                    </button>
 
-                                <button
-                                    onClick={() => handleSend()}
-                                    disabled={!input.trim() || isProcessing || isSessionEnded}
-                                    className="p-3 bg-primary text-white rounded-xl hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg active:scale-95"
-                                >
-                                    <Send size={20} />
-                                </button>
+                                    <input
+                                        type="text"
+                                        ref={inputRef}
+                                        value={input}
+                                        onChange={(e) => {
+                                            setInput(e.target.value);
+                                            // Auto-disable voice mode when typing
+                                            if (isAutoMode && e.target.value.trim()) {
+                                                setIsAutoMode(false);
+                                                stopListening();
+                                            }
+                                        }}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                        placeholder={isAutoMode ? tLab.listening : tLab.inputPlaceholder}
+                                        className="flex-1 bg-transparent border-none focus:ring-0 text-gray-800 placeholder-gray-400"
+                                        disabled={isProcessing || isSessionEnded}
+                                    />
+
+                                    <button
+                                        onClick={() => handleSend()}
+                                        disabled={!input.trim() || isProcessing || isSessionEnded}
+                                        className="p-3 bg-primary text-white rounded-xl hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg active:scale-95"
+                                    >
+                                        <Send size={20} />
+                                    </button>
+                                </div>
                             </div>
                             <div className="text-center mt-2">
                                 <p className="text-xs text-gray-400">
@@ -719,37 +768,81 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                 </AnimatePresence>
             </div>
 
-            {/* Session End Modal */}
+            {/* Session End Modal - Mobile Optimized */}
             <AnimatePresence>
                 {isSessionEnded && !showResultButton && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center relative overflow-hidden"
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-sm p-6 md:p-8 text-center relative overflow-hidden"
                         >
-                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-blue-500" />
-                            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 shadow-inner">
-                                <Sparkles size={40} />
-                            </div>
-                            <h2 className="text-3xl font-bold text-gray-900 mb-3">Session Completed!</h2>
-                            <p className="text-gray-600 mb-8 leading-relaxed">
-                                Great job! The customer has ended the conversation. Ready to see how you performed?
+                            <div className="absolute top-0 left-0 w-full h-1 md:h-2 bg-gradient-to-r from-green-400 to-blue-500" />
+                            
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
+                                className="w-16 h-16 md:w-20 md:h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 text-green-500 shadow-inner"
+                            >
+                                <Sparkles size={32} className="md:w-10 md:h-10" />
+                            </motion.div>
+                            
+                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3">
+                                {language === 'ko' ? '세션 완료!' : language === 'es' ? '¡Sesión Completada!' : language === 'pt-br' ? 'Sessão Concluída!' : 'Session Completed!'}
+                            </h2>
+                            
+                            <p className="text-sm md:text-base text-gray-600 mb-6 md:mb-8 leading-relaxed">
+                                {language === 'ko' ? '고객과의 대화가 끝났어요. 이제 당신의 판매 스킬을 분석해드리겠습니다!' : language === 'es' ? '¡Excelente trabajo! El cliente ha terminado la conversación. ¿Listo para ver cómo te fue?' : language === 'pt-br' ? 'Ótimo trabalho! O cliente encerrou a conversa. Pronto para ver como você se saiu?' : 'Great job! The customer has ended the conversation. Ready to see how you performed?'}
                             </p>
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => setShowResultButton(true)}
-                                    className="flex-1 px-6 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+
+                            {isProcessing && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="mb-6 md:mb-8 flex flex-col items-center"
                                 >
-                                    Review Later
-                                </button>
+                                    <div className="flex gap-1 mb-3">
+                                        <motion.div
+                                            animate={{ scale: [1, 1.2, 1] }}
+                                            transition={{ duration: 0.8, repeat: Infinity }}
+                                            className="w-2 h-2 md:w-3 md:h-3 bg-primary rounded-full"
+                                        />
+                                        <motion.div
+                                            animate={{ scale: [1, 1.2, 1] }}
+                                            transition={{ duration: 0.8, repeat: Infinity, delay: 0.2 }}
+                                            className="w-2 h-2 md:w-3 md:h-3 bg-primary rounded-full"
+                                        />
+                                        <motion.div
+                                            animate={{ scale: [1, 1.2, 1] }}
+                                            transition={{ duration: 0.8, repeat: Infinity, delay: 0.4 }}
+                                            className="w-2 h-2 md:w-3 md:h-3 bg-primary rounded-full"
+                                        />
+                                    </div>
+                                    <p className="text-xs md:text-sm text-gray-500">
+                                        {language === 'ko' ? '피드백을 생성 중입니다...' : language === 'es' ? 'Generando retroalimentación...' : language === 'pt-br' ? 'Gerando feedback...' : 'Generating feedback...'}
+                                    </p>
+                                </motion.div>
+                            )}
+                            
+                            <div className="flex flex-col gap-3 md:gap-4">
                                 <button
                                     onClick={handleEndSession}
                                     disabled={isProcessing}
-                                    className="flex-1 px-6 py-3.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-all shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5"
+                                    className="w-full px-4 md:px-6 py-3 md:py-3.5 bg-gradient-to-r from-primary to-primary-hover text-white font-bold text-sm md:text-base rounded-xl md:rounded-xl hover:shadow-lg transition-all shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-lg disabled:hover:-translate-y-0"
                                 >
-                                    {isProcessing ? t.common.loading : "View Results"}
+                                    {isProcessing ? (language === 'ko' ? '분석 중...' : 'Analyzing...') : (language === 'ko' ? '결과 보기' : language === 'es' ? 'Ver Resultados' : language === 'pt-br' ? 'Ver Resultados' : 'View Results')}
                                 </button>
+                                
+                                {!isProcessing && (
+                                    <button
+                                        onClick={() => setShowResultButton(true)}
+                                        className="w-full px-4 md:px-6 py-2 md:py-3 bg-gray-100 text-gray-700 font-semibold text-sm md:text-base rounded-xl hover:bg-gray-200 transition-colors"
+                                    >
+                                        {language === 'ko' ? '나중에 보기' : language === 'es' ? 'Revisar Después' : language === 'pt-br' ? 'Revisar Depois' : 'Review Later'}
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
                     </div>

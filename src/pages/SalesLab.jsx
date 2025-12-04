@@ -90,7 +90,8 @@ export default function SalesLab() {
                         className="h-full"
                     >
                         <SalesLabFeedback
-                            result={sessionResult}
+                            feedback={sessionResult}
+                            onRestart={handleBackToSetup}
                             onBack={handleBackToSetup}
                             onViewHistory={() => setPhase('HISTORY')}
                         />
