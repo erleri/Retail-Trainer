@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+  <style>
+    .box { fill:#f3f4f6; stroke:#334155; stroke-width:2; rx:8; }
+    .box-main { fill:#bfdbfe; }
+    .box-alt { fill:#bbf7d0; }
+    .text { font-family: Arial, Helvetica, sans-serif; font-size:14px; fill:#0f172a; }
+    .title { font-size:16px; font-weight:700; }
+    .arrow { stroke:#374151; stroke-width:2; fill:none; marker-end: url(#arrowhead); }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#374151" />
+    </marker>
+  </defs>
+
+  <!-- Root -->
+  <rect x="440" y="20" width="320" height="48" class="box"/>
+  <text x="600" y="50" text-anchor="middle" class="text title">HomeDashboard</text>
+
+  <!-- SalesLab column -->
+  <rect x="120" y="120" width="260" height="40" class="box box-main"/>
+  <text x="250" y="148" class="text" text-anchor="middle">SalesLab (페이지)</text>
+
+  <rect x="80" y="180" width="340" height="34" class="box"/>
+  <text x="250" y="203" class="text" text-anchor="middle">SalesLabSetup</text>
+
+  <rect x="80" y="230" width="160" height="28" class="box"/>
+  <text x="160" y="248" class="text">PersonaForm</text>
+  <rect x="260" y="230" width="160" height="28" class="box"/>
+  <text x="340" y="248" class="text">ProductSelect</text>
+
+  <rect x="80" y="280" width="340" height="34" class="box"/>
+  <text x="250" y="303" class="text" text-anchor="middle">SalesLabChat</text>
+
+  <rect x="60" y="330" width="120" height="28" class="box"/>
+  <text x="120" y="348" class="text">ChatMessageList</text>
+  <rect x="190" y="330" width="120" height="28" class="box"/>
+  <text x="250" y="348" class="text">InputBar</text>
+  <rect x="320" y="330" width="120" height="28" class="box"/>
+  <text x="380" y="348" class="text">VoiceControls</text>
+  <rect x="450" y="330" width="120" height="28" class="box"/>
+  <text x="510" y="348" class="text">EndSessionControl</text>
+
+  <rect x="80" y="380" width="340" height="34" class="box"/>
+  <text x="250" y="403" class="text" text-anchor="middle">SalesLabFeedback</text>
+
+  <rect x="80" y="430" width="160" height="28" class="box"/>
+  <text x="160" y="448" class="text">ScoreSummary</text>
+  <rect x="260" y="430" width="160" height="28" class="box"/>
+  <text x="340" y="448" class="text">SkillBars</text>
+
+  <rect x="120" y="490" width="200" height="34" class="box"/>
+  <text x="220" y="513" class="text" text-anchor="middle">SalesLabHistory</text>
+
+  <!-- Other pages column -->
+  <rect x="440" y="120" width="260" height="40" class="box box-alt"/>
+  <text x="570" y="148" class="text" text-anchor="middle">AIChatbot</text>
+
+  <rect x="440" y="180" width="260" height="34" class="box"/>
+  <text x="570" y="203" class="text" text-anchor="middle">ChatWindow</text>
+  <rect x="440" y="230" width="260" height="34" class="box"/>
+  <text x="570" y="253" class="text" text-anchor="middle">TopicSuggester</text>
+
+  <rect x="760" y="120" width="260" height="40" class="box"/>
+  <text x="890" y="148" class="text" text-anchor="middle">StudyRoom / Quiz / MyProgress</text>
+
+  <rect x="760" y="180" width="260" height="34" class="box"/>
+  <text x="890" y="203" class="text" text-anchor="middle">StudyResources / FAQ / Quiz</text>
+
+  <rect x="760" y="240" width="260" height="34" class="box"/>
+  <text x="890" y="263" class="text" text-anchor="middle">MyProgress / Admin Console</text>
+
+  <!-- Shared UI -->
+  <rect x="440" y="520" width="320" height="110" class="box"/>
+  <text x="600" y="548" class="text title" text-anchor="middle">Shared UI</text>
+  <text x="600" y="572" class="text" text-anchor="middle">Button · Input · Modal · ExpandableSection</text>
+
+  <!-- Arrows -->
+  <path d="M600 68 L600 120" class="arrow" />
+  <path d="M250 160 L250 180" class="arrow" />
+  <path d="M250 214 L250 230" class="arrow" />
+  <path d="M250 314 L250 330" class="arrow" />
+  <path d="M250 364 L250 380" class="arrow" />
+  <path d="M250 418 L250 430" class="arrow" />
+
+  <!-- small arrows to right column -->
+  <path d="M560 160 L560 180" class="arrow" />
+
+  <!-- footer note -->
+  <text x="20" y="1560" class="text">Generated: simple structural SVG for quick demo. For high-fidelity diagrams, render Mermaid or create vector art.</text>
+</svg>
