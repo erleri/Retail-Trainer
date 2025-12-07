@@ -4,37 +4,24 @@ import { motion } from 'framer-motion';
 import {
     Trophy, Zap, Star, MessageSquare, ArrowRight, CheckCircle2,
     Target, Play, BookOpen, Flame, Award, Sparkles, User, Bell,
-    Lightbulb, TrendingUp, Monitor
+    Lightbulb, TrendingUp, Monitor, Bot
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { useAppStore } from '../store/appStore';
 import { useUserStore } from '../store/userStore';
 import { operatorApi } from '../services/operatorApi';
 import { translations } from '../constants/translations';
 import { MotionCard } from '../components/ui/modern/MotionCard';
 import { PulseButton } from '../components/ui/modern/PulseButton';
-
-// Mock Data for V2
-const USER_NAME = "Imjun";
-const MISSION_DATA = [
-    { id: 1, type: 'learning', title: 'OLED Refresh Rate', xp: 50, duration: '5m', status: 'new' },
-    { id: 2, type: 'saleslab', title: 'Price Objection', xp: 100, duration: '10m', status: 'urgent' },
-    { id: 3, type: 'quiz', title: 'Weekly Knowledge Check', xp: 30, duration: '3m', status: 'locked' }
-];
-
-const DAILY_INSIGHTS = [
-    { type: 'tip', title: "Closing Tip", content: "Ask 'How about we schedule the delivery for this Saturday?' instead of 'Do you want to buy?'" },
-    { type: 'fact', title: "OLED Fact", content: "OLED pixels generate their own light, allowing for perfect blacks and infinite contrast." },
-    { type: 'quote', title: "Motivation", content: "The best sales presentation is a conversation, not a monologue." }
-];
+import { HeroProgress } from '../components/dashboard/HeroProgress';
+import { USER_NAME, LAST_STUDY_SESSION, MISSION_DATA, AI_BRIEFING_MOCK } from '../constants/mockData';
 
 export default function HomeDashboard() {
     const { language } = useAppStore();
     const t = translations[language];
     const navigate = useNavigate();
     const [streak, setStreak] = useState(15);
-    const [dailyInsight, setDailyInsight] = useState(DAILY_INSIGHTS[0]);
+    const [aiBriefing, setAiBriefing] = useState(AI_BRIEFING_MOCK[0]);
     const [gameData, setGameData] = useState({
         level: 1, currentXp: 0, nextLevelXp: 1000, rankLabel: "Loading...", badges: []
     });
@@ -44,7 +31,15 @@ export default function HomeDashboard() {
             try {
                 const res = await operatorApi.getUserGamificationState("u_01");
                 if (res.success) {
-                    setGameData(res.data.state);
+                    setGameData({
+                        ...res.data.state,
+                        // Mock Badges for Demo if empty
+                        badges: res.data.state.badges?.length > 0 ? res.data.state.badges : [
+                            { id: 1, icon: '🥇', name: 'First Sale' },
+                            { id: 2, icon: '⚡', name: 'Speedster' },
+                            { id: 3, icon: '🧠', name: 'Knowledgeable' }
+                        ]
+                    });
                     setStreak(res.data.state.streak);
                 }
             } catch (error) {
@@ -52,31 +47,12 @@ export default function HomeDashboard() {
             }
         };
         fetchGameData();
-        setDailyInsight(DAILY_INSIGHTS[Math.floor(Math.random() * DAILY_INSIGHTS.length)]);
+        setAiBriefing(AI_BRIEFING_MOCK[Math.floor(Math.random() * AI_BRIEFING_MOCK.length)]);
     }, []);
 
     // Calculate Progress
     const xpPercentage = Math.min(100, (gameData.currentXp / gameData.nextLevelXp) * 100);
-    const xpChartData = [{ name: 'XP', value: xpPercentage, fill: '#4F46E5' }];
 
-    const HeroProgress = () => (
-        <div className="relative h-32 w-32 md:h-40 md:w-40 flex items-center justify-center shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                    innerRadius="80%" outerRadius="100%"
-                    barSize={10} data={xpChartData}
-                    startAngle={90} endAngle={-270}
-                >
-                    <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-                    <RadialBar background={{ fill: '#e2e8f0' }} clockWise dataKey="value" cornerRadius={10} fill="#4F46E5" />
-                </RadialBarChart>
-            </ResponsiveContainer>
-            <div className="absolute flex flex-col items-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <span className="text-2xl md:text-3xl font-black text-slate-900 leading-none">{gameData.level}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">LVL</span>
-            </div>
-        </div>
-    );
 
     return (
         <div className="space-y-6 pb-24 md:pb-8">
@@ -105,14 +81,24 @@ export default function HomeDashboard() {
             <MotionCard className="card-base p-0 overflow-hidden relative group" glass={false}>
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
                 <div className="p-5 flex items-center gap-6 relative z-10">
-                    <HeroProgress />
+                    <HeroProgress level={gameData.level} xpPercentage={xpPercentage} />
 
                     <div className="flex-1 space-y-4">
                         <div className="flex justify-between items-start">
                             <div>
                                 <div className="text-xs font-bold text-slate-400 uppercase mb-1">Current Title</div>
-                                <div className="text-lg font-black text-slate-900 flex items-center gap-2">
-                                    {gameData.rankLabel} <Award size={16} className="text-amber-500" />
+                                <div className="flex items-center gap-3">
+                                    <div className="text-lg font-black text-slate-900 flex items-center gap-2">
+                                        {gameData.rankLabel} <Award size={16} className="text-amber-500" />
+                                    </div>
+                                    {/* Badges Display */}
+                                    <div className="flex -space-x-2">
+                                        {gameData.badges?.slice(0, 3).map((b, i) => (
+                                            <div key={i} className="w-6 h-6 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center text-xs" title={b.name}>
+                                                {b.icon || '🏅'}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end">
@@ -142,42 +128,80 @@ export default function HomeDashboard() {
                 </div>
             </MotionCard>
 
-            {/* 3. Daily Insight & Quick Actions Grid */}
+            {/* 3. Daily Insight & Continue Learning */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                {/* Daily Insight Card */}
-                <MotionCard className="card-base p-5 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100" glass={false} delay={0.1}>
-                    <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-amber-500 shadow-sm shrink-0">
-                            <Lightbulb size={20} />
+                {/* AI Coach Briefing Card */}
+                <MotionCard
+                    className={clsx(
+                        "card-base p-5 border relative overflow-hidden",
+                        aiBriefing.mode === 'coaching' ? "bg-red-50/50 border-red-100" :
+                            aiBriefing.mode === 'praise' ? "bg-blue-50/50 border-blue-100" : "bg-amber-50/50 border-amber-100"
+                    )}
+                    glass={false}
+                    delay={0.1}
+                >
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className={clsx(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0 border",
+                            aiBriefing.mode === 'coaching' ? "bg-white text-red-500 border-red-50" :
+                                aiBriefing.mode === 'praise' ? "bg-white text-blue-500 border-blue-50" : "bg-white text-amber-500 border-amber-50"
+                        )}>
+                            <Bot size={24} />
                         </div>
-                        <div>
-                            <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">Daily {dailyInsight.type}</div>
-                            <h3 className="font-bold text-slate-900 text-sm md:text-base leading-snug mb-1">{dailyInsight.title}</h3>
-                            <p className="text-sm text-slate-600 leading-relaxed max-w-sm">"{dailyInsight.content}"</p>
+                        <div className="flex-1">
+                            <div className={clsx(
+                                "text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1",
+                                aiBriefing.mode === 'coaching' ? "text-red-600" :
+                                    aiBriefing.mode === 'praise' ? "text-blue-600" : "text-amber-600"
+                            )}>
+                                AI Coach Briefing
+                            </div>
+                            <p className="text-slate-900 font-bold leading-snug mb-3 text-sm md:text-base">
+                                "{aiBriefing.message}"
+                            </p>
+                            <button
+                                onClick={() => navigate(aiBriefing.link)}
+                                className={clsx(
+                                    "text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors",
+                                    aiBriefing.mode === 'coaching' ? "bg-red-100 text-red-700 hover:bg-red-200" :
+                                        aiBriefing.mode === 'praise' ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                )}
+                            >
+                                {aiBriefing.action} <ArrowRight size={12} />
+                            </button>
                         </div>
                     </div>
                 </MotionCard>
 
-                {/* Recommended Focus Card */}
+                {/* Continue Learning Card */}
                 <MotionCard
-                    className="card-base p-5 bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100 cursor-pointer hover:shadow-md transition-all"
+                    className="card-base p-5 bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-100 cursor-pointer hover:shadow-md transition-all relative overflow-hidden"
                     glass={false}
                     delay={0.2}
-                    onClick={() => navigate('/sales-lab')}
+                    onClick={() => navigate('/study')}
                 >
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wider">
-                            <Target size={14} /> Recommended Focus
-                        </div>
-                        <ArrowRight size={16} className="text-indigo-400" />
+                    <div className="absolute top-0 right-0 p-3 opacity-10">
+                        <BookOpen size={80} className="text-indigo-500" />
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-white border border-indigo-100 flex items-center justify-center text-primary shadow-sm">
-                            <MessageSquare size={24} />
+                    <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                                <Play size={14} fill="currentColor" /> Continue Learning
+                            </div>
+                            <span className="text-xs font-bold text-indigo-500 bg-white/50 px-2 py-1 rounded-md">{LAST_STUDY_SESSION.progress}%</span>
                         </div>
-                        <div>
-                            <div className="font-bold text-slate-900">Handle Price Objections</div>
-                            <div className="text-xs text-slate-500 mt-0.5">Roleplay • 5 min practice</div>
+
+                        <div className="mb-3">
+                            <h3 className="font-bold text-slate-900 text-lg leading-tight mb-1">{LAST_STUDY_SESSION.title}</h3>
+                            <p className="text-xs text-slate-500">{LAST_STUDY_SESSION.lastModule}</p>
+                        </div>
+
+                        <div className="w-full h-1.5 bg-indigo-200/50 rounded-full overflow-hidden mb-2">
+                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${LAST_STUDY_SESSION.progress}%` }} />
+                        </div>
+
+                        <div className="flex items-center gap-1 text-[10px] text-indigo-400 font-bold uppercase tracking-wide">
+                            Resume Session <ArrowRight size={10} />
                         </div>
                     </div>
                 </MotionCard>
@@ -272,6 +296,6 @@ export default function HomeDashboard() {
                     ))}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

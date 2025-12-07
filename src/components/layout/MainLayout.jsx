@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sidebar } from './modern/Sidebar';
 import { MobileDock } from './modern/MobileDock';
+import { MobileMenu } from './modern/MobileMenu'; // New Component
+import { Menu } from 'lucide-react'; // Icon
 
 export default function MainLayout() {
     const location = useLocation();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans flex flex-col md:flex-row overflow-hidden selection:bg-indigo-100 selection:text-indigo-900">
@@ -17,13 +20,18 @@ export default function MainLayout() {
                 <span className="text-xl font-bold text-slate-900">
                     Retail Trainer
                 </span>
-                <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200" />
+                <button
+                    onClick={() => setIsMenuOpen(true)}
+                    className="p-2 -mr-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                    <Menu size={24} />
+                </button>
             </header>
 
             {/* Main Content Area */}
             <main className="flex-1 relative h-[calc(100vh-64px)] md:h-screen w-full overflow-hidden">
                 {/* Scrollable Container with Mobile Fixes */}
-                <div className="h-full w-full overflow-y-auto overflow-x-hidden px-4 pb-24 md:p-8 md:pb-8 scroll-smooth">
+                <div className="h-full w-full overflow-y-auto overflow-x-hidden px-4 pb-28 md:p-8 md:pb-8 scroll-smooth">
                     <div className="max-w-7xl mx-auto min-h-full">
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -41,8 +49,11 @@ export default function MainLayout() {
                 </div>
             </main>
 
-            {/* Mobile Dock */}
+            {/* Mobile Bottom Nav */}
             <MobileDock />
+
+            {/* Mobile Settings Drawer */}
+            <MobileMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
             {/* Global Clean Background */}
             <div className="fixed inset-0 pointer-events-none -z-20 bg-slate-50" />

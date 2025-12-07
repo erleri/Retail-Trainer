@@ -78,21 +78,32 @@ export default function AIChatbot() {
   useEffect(() => {
     const initChat = async () => {
       try {
-        await aiService.initChat();
+        // Initialize Backend Session (Reuses if exists)
+        await aiService.initTutor();
 
-        // Reset and Add Welcome Message if not initialized
+        // Check if we have existing messages in the store (Persistence)
+        const currentMessages = useChatStore.getState().messages;
+        const hasHistory = currentMessages.length > 0;
+
+        // Reset and Add Welcome Message only if NO history exists
         if (!hasInitialized.current) {
-          useChatStore.getState().resetChat();
-          hasInitialized.current = true;
-          const welcomeText = language === 'ko'
-            ? "안녕하세요! LG TV 세일즈 튜터입니다. 제품 지식부터 판매 노하우까지, 무엇이든 물어보세요! 😊"
-            : (language === 'es'
-              ? "¡Hola! Soy tu tutor de ventas de LG TV. Pregúntame lo que quieras sobre productos o ventas. 😊"
-              : (language === 'pt-br'
-                ? "Olá! Sou seu tutor de vendas de TV LG. Pergunte-me qualquer coisa sobre produtos ou vendas. 😊"
-                : "Hello! I'm your LG TV Sales Tutor. Ask me anything about products or sales know-how! 😊"));
+          if (hasHistory) {
+            console.log("Resuming AI Tutor chat with existing history.");
+            hasInitialized.current = true;
+          } else {
+            console.log("Starting fresh AI Tutor chat.");
+            useChatStore.getState().resetChat();
+            hasInitialized.current = true;
+            const welcomeText = language === 'ko'
+              ? "안녕하세요! LG TV 세일즈 튜터입니다. 제품 지식부터 판매 노하우까지, 무엇이든 물어보세요! 😊"
+              : (language === 'es'
+                ? "¡Hola! Soy tu tutor de ventas de LG TV. Pregúntame lo que quieras sobre productos o ventas. 😊"
+                : (language === 'pt-br'
+                  ? "Olá! Sou seu tutor de vendas de TV LG. Pergunte-me qualquer coisa sobre produtos ou vendas. 😊"
+                  : "Hello! I'm your LG TV Sales Tutor. Ask me anything about products or sales know-how! 😊"));
 
-          addMessage({ role: 'ai', text: welcomeText });
+            addMessage({ role: 'ai', text: welcomeText });
+          }
         }
 
         // Initialize Speech Recognition
@@ -323,7 +334,7 @@ export default function AIChatbot() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] gap-4 p-4 lg:p-0">
+    <div className="flex flex-col h-full gap-4 py-4 lg:p-0">
       {/* Weakness Indicator Panel (Top) */}
       {weakness && (
         <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 animate-in slide-in-from-top-2">
@@ -566,6 +577,6 @@ export default function AIChatbot() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

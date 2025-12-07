@@ -1,37 +1,93 @@
 import React, { useState } from 'react';
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { operatorApi } from '../../services/operatorApi';
 import {
-    Users, Activity, AlertTriangle, TrendingUp, BarChart2,
-    Search, Filter, Map, Layers, Zap, Brain, Settings, Eye, EyeOff, GripVertical
+    Users, Activity, TrendingUp,
+    Brain, Settings, Eye, EyeOff, GripVertical, Sparkles, Layers,
+    Zap, AlertTriangle
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, Legend
+    BarChart, Bar
 } from 'recharts';
 import InsightsConsole from './InsightsConsole';
 import { useOperatorAction } from '../../hooks/useOperatorAction';
+import { useAdminContext } from '../../context/AdminContext';
+import ScopeSelector from '../../components/admin/ScopeSelector';
 
-// --- Scope Selector ---
-const ScopeSelector = ({ scope, setScope }) => (
-    <div className="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-        {['GLOBAL', 'REGION', 'COUNTRY', 'BRANCH'].map((s) => (
-            <button
-                key={s}
-                onClick={() => setScope(s)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${scope === s
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-500 hover:bg-slate-50'
-                    }`}
-            >
-                {s}
+// --- Insight Engine Widget (Redesigned) ---
+const InsightEngineWidget = () => (
+    <div className="bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden mb-6">
+        <div className="p-4 border-b border-indigo-50 bg-indigo-50/30 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-indigo-100 rounded-lg text-indigo-600">
+                    <Brain size={18} />
+                </div>
+                <div>
+                    <h3 className="font-bold text-slate-800 text-sm">AI Field Intelligence</h3>
+                    <p className="text-xs text-slate-500">Real-time analysis from 1,240 active sessions</p>
+                </div>
+            </div>
+            <button className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                View Full Report <TrendingUp size={12} />
             </button>
-        ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-indigo-50">
+            {/* 1. Top Objection */}
+            <div className="p-5 hover:bg-slate-50 transition-colors group">
+                <div className="flex items-start justify-between mb-3">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Top Resistance</span>
+                    <div className="bg-red-50 text-red-600 p-1 rounded">
+                        <AlertTriangle size={14} />
+                    </div>
+                </div>
+                <div className="font-bold text-slate-800 text-lg mb-1 group-hover:text-red-600 transition-colors">"Price is too high"</div>
+                <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-24 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-red-500 w-[75%]"></div>
+                    </div>
+                    <span className="text-xs text-slate-500 font-medium">Freq: High</span>
+                </div>
+            </div>
+
+            {/* 2. Critical Gap */}
+            <div className="p-5 hover:bg-slate-50 transition-colors group">
+                <div className="flex items-start justify-between mb-3">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Skill Gap</span>
+                    <div className="bg-amber-50 text-amber-600 p-1 rounded">
+                        <Zap size={14} />
+                    </div>
+                </div>
+                <div className="font-bold text-slate-800 text-lg mb-1 group-hover:text-amber-600 transition-colors">Closing Techniques</div>
+                <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-24 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500 w-[45%]"></div>
+                    </div>
+                    <span className="text-xs text-slate-500 font-medium">Avg: 45%</span>
+                </div>
+            </div>
+
+            {/* 3. Recommended Action */}
+            <div className="p-5 hover:bg-slate-50 transition-colors group">
+                <div className="flex items-start justify-between mb-3">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Recommendation</span>
+                    <div className="bg-emerald-50 text-emerald-600 p-1 rounded">
+                        <Sparkles size={14} />
+                    </div>
+                </div>
+                <div className="font-bold text-slate-800 text-lg mb-1 group-hover:text-emerald-600 transition-colors">Assign "Value Selling"</div>
+                <button className="text-xs font-bold text-white bg-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors w-full mt-2">
+                    Deploy Module to 42 Users
+                </button>
+            </div>
+        </div>
     </div>
 );
 
 // --- Widget Component ---
-const WidgetRenderer = ({ widget, scope }) => {
+const WidgetRenderer = ({ widget }) => {
+    const { scope } = useAdminContext();
     const { data: widgetData, isLoading, isError } = useQuery({
         queryKey: ['widgetData', widget.id, scope],
         queryFn: async () => {
@@ -132,13 +188,6 @@ const WidgetConfigDrawer = ({ widgets, onClose }) => {
         setLocalWidgets(prev => prev.map(w => w.id === id ? { ...w, visible: !w.visible } : w));
     };
 
-    const moveWidget = (dragIndex, hoverIndex) => {
-        const newWidgets = [...localWidgets];
-        const [removed] = newWidgets.splice(dragIndex, 1);
-        newWidgets.splice(hoverIndex, 0, removed);
-        setLocalWidgets(newWidgets);
-    };
-
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
             <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
@@ -175,7 +224,6 @@ const WidgetConfigDrawer = ({ widgets, onClose }) => {
 
 
 export default function AdminDashboard() {
-    const [scope, setScope] = useState('GLOBAL');
     const [isConfigOpen, setIsConfigOpen] = useState(false);
 
     const { data: widgets = [], isLoading } = useQuery({
@@ -199,7 +247,7 @@ export default function AdminDashboard() {
                     <p className="text-slate-500 text-sm">Real-time overview of training performance.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <ScopeSelector scope={scope} setScope={setScope} />
+                    <ScopeSelector />
                     <div className="h-8 w-px bg-slate-200"></div>
                     <button
                         onClick={() => setIsConfigOpen(true)}
@@ -217,35 +265,28 @@ export default function AdminDashboard() {
             {/* Widgets Grid */}
             {isLoading ? <div>Loading Dashboard...</div> : (
                 <>
+                    {/* Insight Engine Section - Newly Added */}
+                    <InsightEngineWidget />
+
                     {/* KPI Section */}
                     {kpiWidgets.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {kpiWidgets.map(w => (
-                                <WidgetRenderer key={w.id} widget={w} scope={scope} />
+                                <WidgetRenderer key={w.id} widget={w} />
                             ))}
                         </div>
                     )}
 
                     {/* Main Content Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Charts Area */}
-                        <div className="lg:col-span-2 space-y-8">
+                    {/* Main Content Grid - Compact Layout */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Charts Area - Expanded to Full Width */}
+                        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {chartWidgets.map(w => (
-                                <WidgetRenderer key={w.id} widget={w} scope={scope} />
+                                <div key={w.id} className="h-[320px]">
+                                    <WidgetRenderer widget={w} />
+                                </div>
                             ))}
-                        </div>
-
-                        {/* Insights Feed (Fixed) */}
-                        <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden h-fit">
-                            <div className="p-4 bg-white border-b border-slate-200">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                    <Brain className="text-indigo-500" size={18} />
-                                    AI Insights Feed
-                                </h3>
-                            </div>
-                            <div className="p-4 max-h-[800px] overflow-y-auto">
-                                <InsightsConsole />
-                            </div>
                         </div>
                     </div>
                 </>

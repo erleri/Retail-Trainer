@@ -18,6 +18,7 @@ import MyPage from './pages/MyPage';
 import AdminConsole from './pages/AdminConsole';
 
 import StudyRoom from './pages/StudyRoom';
+import NotFound from './pages/NotFound';
 
 import Quiz from './pages/Quiz';
 
@@ -55,6 +56,9 @@ const router = createBrowserRouter(
         <Route path="gamification" element={<GamificationManagement />} />
         <Route path="cms/quiz" element={<QuizModification />} />
       </Route>
+
+      {/* 404 Route */}
+      <Route path="*" element={<NotFound />} />
     </>
   )
 );

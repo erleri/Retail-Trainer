@@ -12,6 +12,26 @@ export const translations = {
             myProfile: 'My Profile',
             admin: 'Admin Console'
         },
+        adminMenu: {
+            dashboard: 'Dashboard',
+            users: 'User Management',
+            products: 'Product Catalog',
+            customer: 'Customer Engine',
+            salesLab: 'Sales Lab Rules',
+            gamification: 'Gamification',
+            cms: 'Content (CMS)',
+            coaching: 'Coaching Center',
+            settings: 'Settings'
+        },
+        adminDashboard: {
+            trends: 'Weekly Engagement Trends',
+            skillMatrix: 'Skill Proficiency Matrix',
+            completionRate: 'Course Completion Rate',
+            activeUsers: 'Active Users',
+            avgSession: 'Average Session Time',
+            aiAdoption: 'AI Adoption Rate',
+            insights: 'AI Insights Feed'
+        },
         header: {
             title: 'TV Retail Trainer',
             welcome: 'Welcome back',
@@ -206,6 +226,26 @@ export const translations = {
             myProgress: '나의 성장',
             myProfile: '프로필 설정',
             admin: '관리자 설정'
+        },
+        adminMenu: {
+            dashboard: '대시보드',
+            users: '유저 관리',
+            products: '상품 카탈로그',
+            customer: '고객 엔진',
+            salesLab: '세일즈랩 규칙',
+            gamification: '게이미피케이션',
+            cms: '콘텐츠(CMS)',
+            coaching: '코칭 센터',
+            settings: '설정'
+        },
+        adminDashboard: {
+            trends: '주간 참여도 트렌드',
+            skillMatrix: '스킬 숙련도 매트릭스',
+            completionRate: '코스 완료율',
+            activeUsers: '활성 사용자',
+            avgSession: '평균 세션 시간',
+            aiAdoption: 'AI 도입률',
+            insights: 'AI 인사이트 피드'
         },
         header: {
             title: 'TV Retail Trainer',
@@ -402,6 +442,26 @@ export const translations = {
             myProfile: 'Mi Perfil',
             admin: 'Administración'
         },
+        adminMenu: {
+            dashboard: 'Dashboard',
+            users: 'Gestión Usuarios',
+            products: 'Catálogo Producto',
+            customer: 'Motor Cliente',
+            salesLab: 'Reglas Sales Lab',
+            gamification: 'Gamificación',
+            cms: 'Contenido (CMS)',
+            coaching: 'Centro Coaching',
+            settings: 'Ajustes'
+        },
+        adminDashboard: {
+            trends: 'Tendencias Semanales',
+            skillMatrix: 'Matriz de Habilidades',
+            completionRate: 'Tasa Completitud',
+            activeUsers: 'Usuarios Activos',
+            avgSession: 'Tiempo Promedio',
+            aiAdoption: 'Adopción IA',
+            insights: 'Feed Insights IA'
+        },
         header: {
             title: 'TV Retail Trainer',
             welcome: 'Bienvenido',
@@ -574,6 +634,26 @@ export const translations = {
             myProfile: 'Meu Perfil',
             admin: 'Administração'
         },
+        adminMenu: {
+            dashboard: 'Dashboard',
+            users: 'Gerenciamento de Usuários',
+            products: 'Catálogo de Produtos',
+            customer: 'Motor de Clientes',
+            salesLab: 'Regras do Sales Lab',
+            gamification: 'Gamificação',
+            cms: 'Conteúdo (CMS)',
+            coaching: 'Centro de Coaching',
+            settings: 'Configurações'
+        },
+        adminDashboard: {
+            trends: 'Tendências Semanais',
+            skillMatrix: 'Matriz de Habilidades',
+            completionRate: 'Taxa de Conclusão',
+            activeUsers: 'Usuários Ativos',
+            avgSession: 'Tempo Médio',
+            aiAdoption: 'Adoção de IA',
+            insights: 'Insights de IA'
+        },
         header: {
             title: 'TV Retail Trainer',
             welcome: 'Bem-vindo',
@@ -610,7 +690,7 @@ export const translations = {
             },
             activeMission: {
                 title: 'Missão Ativa',
-                progress: 'Progresso'
+                progress: 'Progreso'
             },
             quickActions: {
                 title: 'Ações Rápidas',
@@ -731,6 +811,198 @@ export const translations = {
                 summary: "Muito escuro.",
                 logic: ["Contraste", "MLA", "Ambiente"],
                 demo: "Demo HDR",
+                source: "Tech Brief"
+            }
+        }
+    },
+    fr: {
+        nav: {
+            home: 'Tableau de Bord',
+            study: 'Salle d\'Étude',
+            aiTrainer: 'Tuteur IA',
+            salesLab: 'Laboratoire de Vente',
+            my: 'Mon Espace',
+            myProgress: 'Mes Progrès',
+            myProfile: 'Mon Profil',
+            admin: 'Console Admin'
+        },
+        adminMenu: {
+            dashboard: 'Tableau de Bord',
+            users: 'Gestion Utilisateurs',
+            products: 'Catalogue Produits',
+            customer: 'Moteur Client',
+            salesLab: 'Règles Sales Lab',
+            gamification: 'Gamification',
+            cms: 'Contenu (CMS)',
+            coaching: 'Centre de Coaching',
+            settings: 'Paramètres'
+        },
+        adminDashboard: {
+            trends: 'Tendances Hebdo',
+            skillMatrix: 'Matrice Compétences',
+            completionRate: 'Taux Complétion',
+            activeUsers: 'Utilisateurs Actifs',
+            avgSession: 'Session Moyenne',
+            aiAdoption: 'Adoption IA',
+            insights: 'Insights IA'
+        },
+        header: {
+            title: 'TV Retail Trainer',
+            welcome: 'Bienvenue',
+            online: 'En ligne',
+            language: 'Langue',
+            aiTranslated: '✨ Traduit par IA',
+            viewOriginal: '↩️ Voir l\'original'
+        },
+        common: {
+            startNow: 'Commencer',
+            viewAll: 'Voir Tout',
+            loading: 'Chargement...',
+            error: 'Une erreur est survenue.',
+            save: 'Enregistrer',
+            cancel: 'Annuler'
+        },
+        home: {
+            greeting: 'Bonjour,',
+            subtitle: 'Prêt à améliorer vos compétences ?',
+            currentLevel: 'Niveau Actuel',
+            kpi: {
+                xp: 'XP Hebdo',
+                sellout: 'Ventes',
+                rank: 'Classement',
+                trend: 'vs Semaine Dernière'
+            },
+            dailyGoal: {
+                label: 'Objectif du Jour',
+                progress: 'Progrès',
+                continue: 'Continuer'
+            },
+            aiFeed: {
+                title: 'Insights du Tuteur IA'
+            },
+            activeMission: {
+                title: 'Mission Active',
+                progress: 'Progrès'
+            },
+            quickActions: {
+                title: 'Actions Rapides',
+                roleplay: 'Lancer Roleplay',
+                leaderboard: 'Voir Classement'
+            },
+            faqCard: {
+                title: 'Accès Rapide FAQ',
+                viewAll: 'Voir Tout'
+            },
+            attendance: {
+                title: 'Présence',
+                streak: 'Jours Consécutifs',
+                checkIn: 'Pointage'
+            }
+        },
+        study: {
+            title: 'Salle d\'Étude',
+            subtitle: 'Matériels d\'apprentissage premium.',
+            finishCourse: 'Faire le Quiz',
+            nextModule: 'Suivant',
+            prevModule: 'Précédent',
+            tabs: {
+                curriculum: 'Programme',
+                resources: 'Ressources',
+                discussion: 'Discussion',
+                faq: 'FAQ'
+            },
+            faq: {
+                searchPlaceholder: 'Rechercher',
+                categories: {
+                    all: 'Tout',
+                    Product: 'Produit',
+                    Usage: 'Usage',
+                    Technology: 'Technologie',
+                    Basic: 'Basique'
+                },
+                views: 'Vues',
+                related: 'Lié'
+            },
+            courses: []
+        },
+        salesLab: {
+            title: 'Laboratoire de Vente',
+            subtitle: 'Simulation Réelle',
+            setup: {
+                title: 'Configuration',
+                selectProduct: 'Produit',
+                selectCustomer: 'Client',
+                random: 'Aléatoire',
+                start: 'Démarrer',
+                products: {
+                    oled: 'LG OLED TV (G5)',
+                    qned: 'LG QNED TV (QNED90)',
+                    uhd: 'LG UHD TV (UT80)'
+                },
+                traits: {
+                    price: 'Sensible au Prix',
+                    tech: 'Expert Tech',
+                    brand: 'Fidèle à la Marque',
+                    skeptic: 'Sceptique',
+                    family: 'Famille',
+                    gamer: 'Gamer'
+                }
+            },
+            chat: {
+                title: 'Roleplay en Direct',
+                endSession: 'Terminer',
+                autoModeOn: 'Auto ON',
+                autoModeOff: 'Auto OFF',
+                inputPlaceholder: 'Écrivez...',
+                listening: 'Écoute...',
+                guideTitle: 'Guide',
+                stageStrategy: 'Stratégie',
+                sellingPoints: 'Points Clés',
+                steps: {
+                    greeting: 'Salutation',
+                    needs: 'Besoins',
+                    proposal: 'Proposition',
+                    objection: 'Objections',
+                    closing: 'Clôture'
+                },
+                strategies: {
+                    greeting: 'Accueil chaleureux.',
+                    needs: 'Comprendre la douleur.',
+                    proposal: 'Lier aux besoins.',
+                    objection: 'Empathie et clarté.',
+                    closing: 'Conclure la vente.'
+                }
+            },
+            feedback: {
+                title: 'Rapport',
+                subtitle: 'Simulation',
+                totalScore: 'Score Total',
+                skillAnalysis: 'Analyse',
+                aiFeedback: 'Feedback IA',
+                pros: 'Forces',
+                improvements: 'Améliorations',
+                practice: 'Pratiquer',
+                record: 'Enregistrer',
+                mission: 'Mission',
+                startMission: 'Démarrer',
+                backToLab: 'Retour',
+                viewHistory: 'Historique',
+                loading: 'Analyse...'
+            }
+        },
+        objections: {
+            price: {
+                title: "Prix",
+                summary: "Trop cher.",
+                logic: ["Valeur Long Terme", "Premium", "Garantie"],
+                demo: "Démo Perfect Black",
+                source: "Manuel"
+            },
+            brightness: {
+                title: "Luminosité",
+                summary: "Trop sombre.",
+                logic: ["Contraste", "MLA", "Environnement"],
+                demo: "Démo HDR",
                 source: "Tech Brief"
             }
         }

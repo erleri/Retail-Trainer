@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, FlaskConical, Bot, BookOpen, User, Settings, Shield } from 'lucide-react';
+import { LayoutDashboard, FlaskConical, Bot, BookOpen, User, Settings, Shield, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 import { translations } from '../../../constants/translations';
 import { useAppStore } from '../../../store/appStore';
@@ -9,7 +9,7 @@ import { useUserStore } from '../../../store/userStore';
 
 export function Sidebar() {
     const location = useLocation();
-    const { language } = useAppStore();
+    const { language, isDemoMode, toggleDemoMode } = useAppStore();
     const t = translations[language] || translations['en'];
     const { role, toggleRole } = useUserStore();
 
@@ -27,14 +27,14 @@ export function Sidebar() {
                 {/* Header */}
                 <div className="p-6 border-b border-white/20">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-cosmic flex items-center justify-center text-white shadow-lg shadow-primary/30">
-                            <Shield size={20} fill="currentColor" />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center text-white shadow-lg shadow-rose-200">
+                            <Sparkles size={20} fill="currentColor" className="text-white/90" />
                         </div>
                         <div>
-                            <h1 className="font-bold text-lg bg-clip-text text-transparent bg-gradient-cosmic">
-                                Retail Trainer
+                            <h1 className="font-bold text-base leading-tight text-slate-900">
+                                LG Retail Mentor AI
                             </h1>
-                            <p className="text-xs text-slate-500 font-medium">AI Coaching System</p>
+                            <p className="text-[10px] text-slate-500 font-medium tracking-wide">AI Coaching System</p>
                         </div>
                     </div>
                 </div>
@@ -77,7 +77,47 @@ export function Sidebar() {
                 </nav>
 
                 {/* Footer/Admin */}
-                <div className="p-4 border-t border-white/20 bg-white/30">
+                <div className="p-4 border-t border-white/20 bg-white/30 space-y-3">
+                    {/* Language Selector */}
+                    <div className="flex items-center justify-between px-4 py-2 bg-white/40 rounded-xl border border-white/40">
+                        <div className="flex items-center gap-2 text-slate-500">
+                            <span className="text-xs font-bold">Language</span>
+                        </div>
+                        <select
+                            value={language}
+                            onChange={(e) => useAppStore.getState().setLanguage(e.target.value)}
+                            className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer text-right"
+                        >
+                            <option value="en">English</option>
+                            <option value="ko">한국어</option>
+                            <option value="es">Español</option>
+                            <option value="pt-br">Português</option>
+                            <option value="fr">Français</option>
+                        </select>
+                    </div>
+
+                    {/* Demo Mode Toggle */}
+                    <div className="flex items-center justify-between px-4 py-2 bg-white/40 rounded-xl border border-white/40">
+                        <div className="flex items-center gap-2 text-slate-500">
+                            <span className="text-xs font-bold">Demo Mode</span>
+                        </div>
+                        <button
+                            onClick={toggleDemoMode}
+                            className={clsx(
+                                "relative w-8 h-4 rounded-full transition-colors",
+                                isDemoMode ? "bg-indigo-500" : "bg-slate-300"
+                            )}
+                        >
+                            <span
+                                className={clsx(
+                                    "absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform",
+                                    isDemoMode ? "translate-x-4" : "translate-x-0"
+                                )}
+                            />
+                        </button>
+                    </div>
+
+
                     <button
                         onClick={() => {
                             if (role !== 'admin') toggleRole();
@@ -88,7 +128,7 @@ export function Sidebar() {
                         <Link to="/admin" className="flex-1 text-left text-sm font-medium">Admin Console</Link>
                     </button>
 
-                    <div className="mt-4 flex items-center justify-between px-2 text-xs text-slate-400 font-medium">
+                    <div className="flex items-center justify-between px-2 text-xs text-slate-400 font-medium">
                         <span>v1.2.0 Cosmic</span>
                         <div className="flex gap-2">
                             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />

@@ -3,7 +3,7 @@
  * Persists the in-memory mock DB to LocalStorage so changes survive refreshes.
  */
 
-const STORAGE_KEY = "AG_RETAIL_TRAINER_DB_V1";
+const STORAGE_KEY = "AG_RETAIL_TRAINER_DB_V2";
 
 export const StorageAdapter = {
     save: (dbState) => {

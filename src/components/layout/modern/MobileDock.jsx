@@ -20,8 +20,8 @@ export function MobileDock() {
     ];
 
     return (
-        <div className="md:hidden fixed bottom-6 left-4 right-4 z-50">
-            <nav className="bg-surface-glass backdrop-blur-xl border border-white/40 shadow-glass rounded-2xl flex justify-between items-center px-2 py-2">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 pb-safe">
+            <nav className="flex justify-between items-center px-6 py-2 pb-5">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;
@@ -35,7 +35,7 @@ export function MobileDock() {
                             {isActive && (
                                 <motion.div
                                     layoutId="dock-active"
-                                    className="absolute inset-0 bg-white/50 rounded-xl"
+                                    className="absolute -top-2 w-12 h-1 bg-indigo-500 rounded-b-full"
                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                 />
                             )}
@@ -44,7 +44,7 @@ export function MobileDock() {
                                 whileTap={{ scale: 0.9 }}
                                 className={clsx(
                                     "relative z-10 flex flex-col items-center gap-1 transition-colors",
-                                    isActive ? "text-primary" : "text-slate-500"
+                                    isActive ? "text-indigo-600" : "text-slate-400"
                                 )}
                             >
                                 <Icon
@@ -52,7 +52,7 @@ export function MobileDock() {
                                     strokeWidth={isActive ? 2.5 : 2}
                                     className={clsx(isActive && "drop-shadow-sm")}
                                 />
-                                <span className="text-[10px] font-bold">
+                                <span className={clsx("text-[10px] font-bold", isActive ? "text-indigo-600" : "text-slate-400")}>
                                     {item.label}
                                 </span>
                             </motion.div>

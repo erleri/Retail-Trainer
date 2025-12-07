@@ -277,7 +277,13 @@ export const INITIAL_UPM_LOGS = {
         scenario: { behaviorScore: 0.85, upsellSuccessRate: 0.4, totalSessions: 12 },
         learning: { completedModules: 5, repeatCount: 2 },
         quiz: { avgAccuracy: 0.9, totalQuizzes: 4 },
-        skill: { product_knowledge: 0.8, empathy: 0.7, closing: 0.6 }
+        skill: {
+            product_knowledge: 0.8,
+            empathy: 0.7,
+            closing: 0.6,
+            objection_handling: 0.75,
+            needs_discovery: 0.82
+        }
     }
 };
 

@@ -1,74 +1,46 @@
 {
     "tech_stack": [
-        "JavaScript",
         "React",
         "Vite",
-        "Tailwind CSS",
+        "TailwindCSS",
         "Zustand",
-        "Google Generative AI",
-        "Framer Motion",
-        "React Router",
-        "IndexedDB (idb)",
-        "Lucide React"
+        "Recharts",
+        "Framer Motion"
     ],
     "features": [
         {
-            "name": "Sales Lab",
-            "description": "Interactive sales roleplay simulation with AI customer. Features setup, chat interface, voice interaction (TTS/STT), and feeback generation.",
-            "files": [
-                "src/pages/SalesLab.jsx",
-                "src/components/sales-lab/SalesLabSetup.jsx",
-                "src/components/sales-lab/SalesLabChat.jsx",
-                "src/components/sales-lab/SalesLabFeedback.jsx",
-                "src/components/sales-lab/SalesLabHistory.jsx",
-                "src/components/sales-lab/ChatMessage.jsx"
-            ]
-        },
-        {
-            "name": "AI Chatbot (AI Tutor)",
-            "description": "AI-powered tutor for product knowledge and sales tips. Supports voice mode, markdown rendering, and persistent chat history.",
-            "files": [
-                "src/pages/AIChatbot.jsx",
-                "src/store/chatStore.js",
-                "src/lib/gemini.js"
-            ]
-        },
-        {
-            "name": "Admin Console",
-            "description": "Administrative dashboard for managing users, content, products, and system settings. Includes simulated backend logic via Operator API.",
-            "files": [
-                "src/pages/AdminConsole.jsx",
-                "src/components/layout/AdminLayout.jsx",
-                "src/pages/admin/AdminDashboard.jsx",
-                "src/pages/admin/AdminPages.jsx",
-                "src/services/operatorApi.js",
-                "src/services/mockDataV2.js"
-            ]
-        },
-        {
-            "name": "Study Room",
-            "description": "Learning center with tabbed navigation for different study materials.",
-            "files": [
-                "src/pages/StudyRoom.jsx"
-            ]
-        },
-        {
             "name": "Home Dashboard",
-            "description": "Main landing page showing overview of user progress and quick links.",
+            "description": "Main user landing page with gamification stats, AI coach briefing, and mission list. Displays user progress, streaks, and personalized AI messages.",
             "files": [
                 "src/pages/HomeDashboard.jsx",
-                "src/components/layout/MainLayout.jsx"
+                "src/components/dashboard/HeroProgress.jsx",
+                "src/constants/mockData.js"
             ]
         },
         {
-            "name": "State Management & Services",
-            "description": "Global state management using Zustand and simulated backend services.",
+            "name": "Admin Dashboard",
+            "description": "Administrator console with KPI charts, insights feed, and localization support. Includes widgets for sales performance, engagement trends, and scope selection.",
             "files": [
-                "src/store/appStore.js",
-                "src/store/userStore.js",
-                "src/store/chatStore.js",
-                "src/services/operatorApi.js",
-                "src/services/storageAdapter.js"
+                "src/pages/admin/AdminDashboard.jsx",
+                "src/pages/admin/PerformanceMonitor.jsx",
+                "src/pages/admin/InsightsConsole.jsx",
+                "src/components/layout/AdminLayout.jsx"
+            ]
+        },
+        {
+            "name": "Localization System",
+            "description": "Multi-language support (EN, KO, ES, PT-BR, FR) using a centralized translations object and Zustand store.",
+            "files": [
+                "src/constants/translations.js",
+                "src/store/appStore.js"
+            ]
+        },
+        {
+            "name": "Sales Lab",
+            "description": "Roleplay simulation environment for sales training.",
+            "files": [
+                "src/pages/SalesLab.jsx",
+                "src/components/sales-lab/SalesLabSetup.jsx"
             ]
         }
     ]

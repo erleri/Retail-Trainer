@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Play, User, Monitor, Shuffle, History, Info, List, X, Star, ArrowLeft, Settings, Check, Sparkles, Target, Database, CheckCircle2 } from 'lucide-react';
+import { Play, User, Monitor, Shuffle, History, Info, List, X, Star, ArrowLeft, Settings, Check, Sparkles, Target, Database, CheckCircle2, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
@@ -73,10 +73,15 @@ export default function SalesLabSetup({ onStart, onViewHistory }) {
                     setDifficulty(diffRes.data.levels[1] || diffRes.data.levels[0]);
                 }
 
-                if (traitRes.success && traitRes.data.traits.length >= 2) {
+                // FIX: Select Random Persona initially instead of fixed traits
+                if (perRes.success && perRes.data.personas.length > 0) {
+                    const rndPersona = perRes.data.personas[Math.floor(Math.random() * perRes.data.personas.length)];
+                    setSelectedTraits(rndPersona.mainTraits);
+                    setAge(rndPersona.ageGroup);
+                    setGender(rndPersona.gender);
+                } else if (traitRes.success && traitRes.data.traits.length >= 2) {
                     setSelectedTraits([traitRes.data.traits[0].id, traitRes.data.traits[1].id]);
                 }
-
             } catch (e) {
                 console.error("Failed to load Operator Data", e);
             } finally {
@@ -160,11 +165,13 @@ export default function SalesLabSetup({ onStart, onViewHistory }) {
 
     const randomizeProduct = () => {
         if (!catalog) return;
+        // FIX: Enforce "TV" only if available
         const types = catalog.types;
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        setSelectedType(randomType);
+        const targetType = types.includes("TV") ? "TV" : types[Math.floor(Math.random() * types.length)];
 
-        const cats = catalog.categories[randomType] || [];
+        setSelectedType(targetType);
+
+        const cats = catalog.categories[targetType] || [];
         if (cats.length > 0) {
             const randomCat = cats[Math.floor(Math.random() * cats.length)];
             setSelectedCategory(randomCat);
@@ -260,7 +267,6 @@ export default function SalesLabSetup({ onStart, onViewHistory }) {
                         <div className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mb-1">Target Profile</div>
                         <div className="text-xl font-black text-slate-900 flex items-center gap-3">{matchedPersona ? matchedPersona.name : "Custom Target"} {matchedPersona && <Check className="text-white bg-indigo-500 rounded-full p-0.5" size={20} />}</div>
                     </div>
-                    <button onClick={() => setIsPresetModalOpen(true)} className="btn-secondary text-xs font-bold flex items-center gap-2"><List size={14} /> LOADER</button>
                 </MotionCard>
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Simulation Level</label>
@@ -308,13 +314,20 @@ export default function SalesLabSetup({ onStart, onViewHistory }) {
 
     return (
         <div className="h-full flex flex-col text-slate-900 relative overflow-hidden font-sans">
-            <div className="max-w-7xl mx-auto w-full p-3 md:p-6 lg:p-8 h-full flex flex-col relative z-10">
+            <div className="max-w-7xl mx-auto w-full h-full flex flex-col relative z-10">
                 <div className="flex justify-between items-end mb-4 md:mb-8 border-b border-slate-200 pb-4 md:pb-6">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <div className="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-primary text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> Mission Setup
+                                <span className={clsx("w-1.5 h-1.5 rounded-full animate-pulse", isDemoMode ? "bg-emerald-500" : "bg-primary")} /> Mission Setup
                             </div>
+                            <button
+                                onClick={toggleDemoMode}
+                                className={clsx("px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all", isDemoMode ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-600")}
+                            >
+                                <Zap size={10} className={isDemoMode ? "fill-emerald-500" : ""} />
+                                Demo Mode: {isDemoMode ? "ON" : "OFF"}
+                            </button>
                         </div>
                         <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                             {t.salesLab.title}
@@ -345,14 +358,25 @@ export default function SalesLabSetup({ onStart, onViewHistory }) {
                     </div>
                 </div>
 
-                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 flex-1 overflow-visible lg:overflow-hidden pb-24 md:pb-0">
-                    <div className="lg:col-span-4 h-auto lg:h-full flex flex-col">
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-6 flex-1 overflow-visible md:overflow-hidden pb-24 md:pb-0">
+                    <div className="md:col-span-4 h-auto md:h-full flex flex-col">
                         <Section title="Product" icon={Monitor} headerAction={<button onClick={(e) => { e.stopPropagation(); randomizeProduct(); }} className="text-[10px] uppercase font-bold bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md flex items-center gap-1 text-slate-500 transition-colors"><Shuffle size={10} /> Auto</button>}>
                             {renderProductContent()}
                         </Section>
                     </div>
-                    <div className="lg:col-span-8 h-auto lg:h-full flex flex-col">
-                        <Section title="Target Profile" icon={Target}>
+                    <div className="md:col-span-8 h-auto md:h-full flex flex-col">
+                        <Section
+                            title="Target Profile"
+                            icon={Target}
+                            headerAction={
+                                <button
+                                    onClick={() => setIsPresetModalOpen(true)}
+                                    className="text-[10px] uppercase font-bold bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md flex items-center gap-1 text-slate-500 transition-colors"
+                                >
+                                    <List size={10} /> Load Preset
+                                </button>
+                            }
+                        >
                             {renderCustomerContent()}
                         </Section>
                     </div>

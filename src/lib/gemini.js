@@ -56,7 +56,8 @@ const TRAINER_INSTRUCTION = `
 5. 마크다운은 화면 텍스트에만 사용 (음성 텍스트에는 사용 금지)
 `;
 
-let chatSession = null;
+let tutorSession = null;
+let roleplaySession = null;
 
 // --- MOCK DATA FOR DEMO MODE ---
 const MOCK_SCRIPTS = {
@@ -71,14 +72,60 @@ const MOCK_SCRIPTS = {
     objection: `음... 가격이 생각보다 좀 나가네요. 인터넷 최저가랑 비교해도 경쟁력이 있는 건가요?`,
     closing: `네, 알겠습니다. 설명도 잘 해주시고 혜택도 좋아서 여기서 할게요. 배송은 언제쯤 받을 수 있을까요?`
 };
+const MOCK_TUTOR_SCRIPTS = {
+    fallback: `### 📌 Demo Mode Helper
+I am currently in Demo Mode (Offline).
+
+### 🔧 Available Topics
+- Try asking about **"OLED vs QNED"**
+- Ask about **"Price"** negotiation
+- **"Closing"** techniques
+
+---SPEECH---
+I am in demo mode. Please ask about OLED, Price, or Closing.`,
+
+    oled: `### 📌 OLED vs QNED Difference
+**OLED (Organic Light Emitting Diode)** uses self-lit pixels for perfect black and infinite contrast.
+**QNED** combines Quantum Dot and NanoCell technology for rich colors and high brightness with a backlight.
+
+### 🔧 Key Selling Points
+- **OLED**: Best for movies, dark rooms, and gaming (fast response).
+- **QNED**: Great for bright rooms and vibrant sports viewing.
+
+---SPEECH---
+OLED uses self-lit pixels for perfect blacks, while QNED uses Quantum Dot and NanoCell for vibrant colors. OLED is best for movies, QNED for bright rooms.`,
+
+    price: `### 📌 Handling Price Objections
+When a customer says it's too expensive:
+1. **Acknowledge**: "I understand it's a significant investment."
+2. **Value**: Reiterate the long-term benefits (5-year warranty, energy saving).
+3. **Breakdown**: "If you use it for 10 years, it's only a cup of coffee a day."
+
+---SPEECH---
+Acknowledge the price, then emphasize the long-term value and daily usage cost.`,
+
+    closing: `### 📌 Effective Closing Techniques
+- **Alternative Close**: "Would you prefer delivery on Tuesday or Saturday?"
+- **Now or Never**: "This promotion ends this weekend."
+- **Assumptive Close**: "I'll get the paperwork ready for you."
+
+---SPEECH---
+Try offering two delivery dates, or mention the promotion deadline to encourage a decision.`
+};
 
 export const aiService = {
-    // Initialize or reset chat session
-    initChat: async (systemInstruction = TRAINER_INSTRUCTION) => {
+    // Initialize or reset AI Tutor session
+    initTutor: async (systemInstruction = TRAINER_INSTRUCTION) => {
         const isDemo = useAppStore.getState().isDemoMode;
         if (isDemo) return { demo: true };
 
-        console.log("Initializing Chat with model: gemini-2.0-flash");
+        // Persistence check: Reuse existing session to maintain memory
+        if (tutorSession) {
+            console.log("Resuming existing AI Tutor session");
+            return tutorSession;
+        }
+
+        console.log("Initializing New AI Tutor Session with model: gemini-2.0-flash");
         const genAI = getGenAI();
         if (!genAI) return null;
 
@@ -87,14 +134,14 @@ export const aiService = {
             systemInstruction: systemInstruction
         });
 
-        chatSession = model.startChat({
+        tutorSession = model.startChat({
             history: [],
             generationConfig: {
                 maxOutputTokens: 2000,
                 temperature: 0.9,
             },
         });
-        return chatSession;
+        return tutorSession;
     },
 
     // Send message to Gemini
@@ -215,11 +262,21 @@ export const aiService = {
             `;
 
             // Initialize chat session with this persona
-            await aiService.initChat(prompt);
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.0-flash",
+                systemInstruction: prompt
+            });
 
+            roleplaySession = model.startChat({
+                history: [],
+                generationConfig: {
+                    maxOutputTokens: 2000,
+                    temperature: 0.9,
+                },
+            });
 
             // Generate first message
-            const result = await chatSession.sendMessage("Start the roleplay now with the opening line.");
+            const result = await roleplaySession.sendMessage("Start the roleplay now with the opening line.");
             const response = await result.response;
             return response.text();
 
@@ -322,16 +379,35 @@ export const aiService = {
         if (isDemo) {
             // Mock Response Logic
             await new Promise(resolve => setTimeout(resolve, 1000));
-            const turn = conversationHistory ? conversationHistory.length : 0;
-            const mockIndex = Math.floor(turn / 2) % MOCK_SCRIPTS.responses.length;
-            const mockResponse = MOCK_SCRIPTS.responses[mockIndex] || MOCK_SCRIPTS.closing;
 
-            return { text: mockResponse, speech: mockResponse };
+            if (isRoleplay) {
+                const turn = conversationHistory ? conversationHistory.length : 0;
+                const mockIndex = Math.floor(turn / 2) % MOCK_SCRIPTS.responses.length;
+                const mockResponse = MOCK_SCRIPTS.responses[mockIndex] || MOCK_SCRIPTS.closing;
+                return { text: mockResponse, speech: mockResponse };
+            } else {
+                // Tutor Logic (Keyword Matching)
+                const lowerMsg = message.toLowerCase();
+                let mockResponse = MOCK_TUTOR_SCRIPTS.fallback;
+
+                if (lowerMsg.includes('oled') || lowerMsg.includes('qned')) mockResponse = MOCK_TUTOR_SCRIPTS.oled;
+                else if (lowerMsg.includes('price') || lowerMsg.includes('expensive') || lowerMsg.includes('cost') || lowerMsg.includes('비싸')) mockResponse = MOCK_TUTOR_SCRIPTS.price;
+                else if (lowerMsg.includes('close') || lowerMsg.includes('closing') || lowerMsg.includes('마무리')) mockResponse = MOCK_TUTOR_SCRIPTS.closing;
+
+                const parts = mockResponse.split('---SPEECH---');
+                return { text: parts[0].trim(), speech: parts[1] ? parts[1].trim() : parts[0].trim() };
+            }
         }
 
-        if (!chatSession) {
-            await aiService.initChat(TRAINER_INSTRUCTION);
+        let activeSession = isRoleplay ? roleplaySession : tutorSession;
 
+        if (!activeSession) {
+            if (isRoleplay) {
+                console.error("Roleplay session missing during sendMessage");
+                return { text: "⚠️ Session Error: Please restart the Sales Lab.", speech: "Session error." };
+            }
+            // For Tutor, auto-recover
+            activeSession = await aiService.initTutor(TRAINER_INSTRUCTION);
         }
 
         let langInstruction = "";
@@ -361,7 +437,7 @@ export const aiService = {
         }
 
         try {
-            const result = await chatSession.sendMessage(message + langInstruction + roleplayInstruction);
+            const result = await activeSession.sendMessage(message + langInstruction + roleplayInstruction);
             const response = await result.response;
             const fullText = response.text();
 
@@ -399,9 +475,28 @@ export const aiService = {
         if (isDemo) {
             // Mock Stream Logic
             await new Promise(resolve => setTimeout(resolve, 800));
-            const turn = conversationHistory ? conversationHistory.length : 0;
-            const mockIndex = Math.floor(turn / 2) % MOCK_SCRIPTS.responses.length;
-            const mockResponse = MOCK_SCRIPTS.responses[mockIndex] || MOCK_SCRIPTS.closing;
+            let mockResponse = "";
+            let speechText = "";
+
+            if (isRoleplay) {
+                const turn = conversationHistory ? conversationHistory.length : 0;
+                const mockIndex = Math.floor(turn / 2) % MOCK_SCRIPTS.responses.length;
+                const rawResponse = MOCK_SCRIPTS.responses[mockIndex] || MOCK_SCRIPTS.closing;
+                mockResponse = rawResponse;
+                speechText = rawResponse;
+            } else {
+                // Tutor Logic
+                const lowerMsg = message.toLowerCase();
+                let rawResponse = MOCK_TUTOR_SCRIPTS.fallback;
+
+                if (lowerMsg.includes('oled') || lowerMsg.includes('qned')) rawResponse = MOCK_TUTOR_SCRIPTS.oled;
+                else if (lowerMsg.includes('price') || lowerMsg.includes('expensive') || lowerMsg.includes('cost') || lowerMsg.includes('비싸')) rawResponse = MOCK_TUTOR_SCRIPTS.price;
+                else if (lowerMsg.includes('close') || lowerMsg.includes('closing') || lowerMsg.includes('마무리')) rawResponse = MOCK_TUTOR_SCRIPTS.closing;
+
+                const parts = rawResponse.split('---SPEECH---');
+                mockResponse = parts[0].trim();
+                speechText = parts[1] ? parts[1].trim() : parts[0].trim();
+            }
 
             // Simulate streaming
             const chars = mockResponse.split('');
@@ -410,7 +505,7 @@ export const aiService = {
                 onChunk(chunk);
                 await new Promise(r => setTimeout(r, 20));
             }
-            return { text: mockResponse, speech: mockResponse };
+            return { text: mockResponse, speech: speechText };
         }
 
         if (!API_KEY) {
@@ -419,9 +514,15 @@ export const aiService = {
             return { text: "시스템 오류: API 키가 설정되지 않았습니다.", speech: "API 키 오류가 발생했습니다." };
         }
 
-        if (!chatSession) {
-            await aiService.initChat(TRAINER_INSTRUCTION);
+        let activeSession = isRoleplay ? roleplaySession : tutorSession;
 
+        if (!activeSession) {
+            if (isRoleplay) {
+                const msg = "⚠️ Session Error: Please restart the activity.";
+                onChunk(msg);
+                return { text: msg, speech: "" };
+            }
+            activeSession = await aiService.initTutor(TRAINER_INSTRUCTION);
         }
 
         let langInstruction = "";
@@ -452,7 +553,7 @@ export const aiService = {
         }
 
         try {
-            const result = await chatSession.sendMessageStream(message + langInstruction + roleplayInstruction);
+            const result = await activeSession.sendMessageStream(message + langInstruction + roleplayInstruction);
 
             let fullText = '';
             for await (const chunk of result.stream) {
