@@ -323,22 +323,22 @@ export default function AIChatbot() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] gap-2 md:gap-4">
+    <div className="flex flex-col h-[calc(100vh-140px)] gap-4 p-4 lg:p-0">
       {/* Weakness Indicator Panel (Top) */}
       {weakness && (
-        <div className="bg-gradient-to-r from-red-50 to-white border border-red-100 rounded-lg md:rounded-xl p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 animate-in slide-in-from-top-2 shadow-sm">
-          <div className="flex items-start gap-2 md:gap-3 flex-1">
-            <div className="p-1.5 md:p-2 bg-white rounded-lg text-red-500 shadow-sm flex-shrink-0">
-              <AlertCircle size={18} className="md:w-5 md:h-5" />
+        <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 animate-in slide-in-from-top-2">
+          <div className="flex items-start gap-3 flex-1">
+            <div className="p-2 bg-white rounded-lg text-red-500 shadow-sm border border-red-100 flex-shrink-0">
+              <AlertCircle size={18} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs md:text-sm font-bold text-red-900">Weakness: {weakness.category}</p>
+              <p className="text-sm font-bold text-red-900">Weakness: {weakness.category}</p>
               <p className="text-xs text-red-700 truncate">Accuracy low ({weakness.score}%). {weakness.recommendedAction.title}</p>
             </div>
           </div>
           <button
             onClick={() => navigate(weakness.recommendedAction.link)}
-            className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white text-red-600 text-xs md:text-xs font-bold rounded-lg hover:bg-red-50 transition-colors border border-red-200 shadow-sm hover:shadow-md flex-shrink-0 whitespace-nowrap"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white text-red-600 text-xs font-bold rounded-lg hover:bg-red-50 transition-colors border border-red-200 shadow-sm whitespace-nowrap"
           >
             Learn <ArrowRight size={14} />
           </button>
@@ -346,54 +346,51 @@ export default function AIChatbot() {
       )}
 
       <div className="flex-1 flex flex-col md:flex-row gap-6 min-h-0">
-        <div className="flex-1 flex flex-col glass-card rounded-2xl shadow-sm border border-white/20 overflow-hidden min-w-0 bg-white/50 backdrop-blur-sm">
+        <div className="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-w-0">
           {/* Header */}
-          <div className="border-b border-gray-100 bg-white/80 backdrop-blur-md">
-            <div className="p-3 md:p-4 flex justify-between items-center">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner text-lg md:text-xl">
-                  🎓
+          <div className="border-b border-slate-100 bg-white">
+            <div className="p-4 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-primary border border-indigo-100">
+                  <BookOpen size={20} />
                 </div>
-                <div className="hidden md:block">
-                  <h2 className="font-bold text-text-primary">AI Tutor</h2>
-                  <p className="text-xs text-text-secondary flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-glow" /> Online
+                <div>
+                  <h2 className="font-bold text-slate-900">AI Tutor</h2>
+                  <p className="text-xs text-slate-500 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Online
                   </p>
                 </div>
               </div>
-              <div className="flex gap-1 md:gap-2 items-center">
+              <div className="flex gap-2 items-center">
                 {isSpeaking && (
-                  <button onClick={stopSpeaking} className="p-1.5 md:p-2 text-primary hover:bg-primary/10 rounded-full transition-colors animate-pulse flex-shrink-0">
-                    <Volume2 size={18} className="md:w-5 md:h-5" />
+                  <button onClick={stopSpeaking} className="p-2 text-primary bg-indigo-50 rounded-full animate-pulse transition-colors">
+                    <Volume2 size={18} />
                   </button>
                 )}
                 <button
                   onClick={() => setIsAutoMode(!isAutoMode)}
                   className={clsx(
-                    "flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm flex-shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
                     isAutoMode
-                      ? "bg-primary/10 text-primary border-primary/20 shadow-glow"
-                      : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                      : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
                   )}
                 >
                   {isAutoMode ? <Mic size={14} /> : <FileText size={14} />}
-                  <span className="hidden sm:inline">{isAutoMode ? "Voice" : "Text"}</span>
+                  <span className="hidden sm:inline">{isAutoMode ? "Voice Mode" : "Text Mode"}</span>
                 </button>
                 <button
                   onClick={handleClearChat}
-                  className="p-1.5 md:p-2 text-text-secondary hover:text-red-500 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
+                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                   title="Clear Chat"
                 >
-                  <Trash2 size={18} className="md:w-5 md:h-5" />
-                </button>
-                <button className="p-1.5 md:p-2 text-text-secondary hover:text-primary transition-colors flex-shrink-0">
-                  <SettingsIcon />
+                  <Trash2 size={18} />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50/50">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/50">
             {messages.map((msg) => {
               // Parse AI response to separate core summary and details
               const parseAIResponse = (text) => {
@@ -426,31 +423,31 @@ export default function AIChatbot() {
                   animate={{ opacity: 1, y: 0 }}
                   key={msg.id}
                   className={clsx(
-                    "flex gap-3 md:gap-4 max-w-[95%] md:max-w-[80%]",
+                    "flex gap-4 max-w-[90%] md:max-w-[80%]",
                     msg.role === 'user' ? "ml-auto flex-row-reverse" : ""
                   )}
                 >
                   <div className={clsx(
-                    "w-7 h-7 md:w-8 md:h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs md:text-sm shadow-sm transition-transform group-hover:scale-110 font-semibold",
-                    msg.role === 'user' ? "bg-gradient-to-br from-secondary to-secondary-hover text-white" : "bg-gradient-to-br from-primary to-primary-hover text-white"
+                    "w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold border",
+                    msg.role === 'user' ? "bg-indigo-600 text-white border-indigo-700" : "bg-white text-emerald-600 border-slate-200"
                   )}>
                     {msg.role === 'user' ? 'ME' : 'AI'}
                   </div>
                   <div className="flex flex-col gap-2 flex-1">
                     <div className={clsx(
-                      "p-3 md:p-5 rounded-2xl shadow-sm text-xs md:text-sm leading-relaxed prose prose-sm max-w-none",
+                      "p-5 rounded-2xl shadow-sm text-sm leading-relaxed",
                       msg.role === 'user'
-                        ? "bg-gradient-to-br from-secondary to-secondary-hover text-white rounded-tr-none prose-invert shadow-lg shadow-secondary/20 ml-auto"
-                        : "glass-card border-none text-text-primary rounded-tl-none bg-white/80"
+                        ? "bg-indigo-600 text-white rounded-tr-none shadow-indigo-200"
+                        : "bg-white border border-slate-200 text-slate-800 rounded-tl-none"
                     )}>
                       {msg.role === 'ai' ? (
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            table: ({ ...props }) => <table className="border-collapse border border-gray-200 w-full my-2 text-xs" {...props} />,
-                            th: ({ ...props }) => <th className="border border-gray-200 bg-gray-50 p-2 text-left font-bold" {...props} />,
-                            td: ({ ...props }) => <td className="border border-gray-200 p-2" {...props} />,
-                            strong: ({ ...props }) => <strong className="font-bold text-primary" {...props} />,
+                            table: ({ ...props }) => <table className="border-collapse border border-slate-200 w-full my-2 text-xs" {...props} />,
+                            th: ({ ...props }) => <th className="border border-slate-200 bg-slate-50 p-2 text-left font-bold" {...props} />,
+                            td: ({ ...props }) => <td className="border border-slate-200 p-2" {...props} />,
+                            strong: ({ ...props }) => <strong className="font-bold text-indigo-600" {...props} />,
                             p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />
                           }}
                         >
@@ -465,9 +462,9 @@ export default function AIChatbot() {
                     {details && msg.role === 'ai' && (
                       <button
                         onClick={() => toggleMessageDetails(msg.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-primary hover:text-primary-hover font-semibold text-xs transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 text-indigo-600 hover:text-indigo-700 font-bold text-xs transition-colors self-start"
                       >
-                        <span>{isExpanded ? '상세 정보 숨기기' : '📖 상세 정보 보기'}</span>
+                        <span>{isExpanded ? 'Hide Details' : 'View Details'}</span>
                         <ChevronDown
                           size={14}
                           className={clsx(
@@ -483,15 +480,15 @@ export default function AIChatbot() {
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-3 md:p-4 bg-blue-50 border-l-4 border-blue-300 rounded-r-lg text-xs md:text-sm prose prose-sm max-w-none"
+                        className="p-4 bg-indigo-50 border-l-4 border-indigo-400 rounded-r-lg text-sm text-slate-700"
                       >
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            table: ({ ...props }) => <table className="border-collapse border border-gray-200 w-full my-2 text-xs" {...props} />,
-                            th: ({ ...props }) => <th className="border border-gray-200 bg-gray-50 p-2 text-left font-bold" {...props} />,
-                            td: ({ ...props }) => <td className="border border-gray-200 p-2" {...props} />,
-                            strong: ({ ...props }) => <strong className="font-bold text-primary" {...props} />,
+                            table: ({ ...props }) => <table className="border-collapse border border-slate-200 w-full my-2 text-xs" {...props} />,
+                            th: ({ ...props }) => <th className="border border-slate-200 bg-slate-50 p-2 text-left font-bold" {...props} />,
+                            td: ({ ...props }) => <td className="border border-slate-200 p-2" {...props} />,
+                            strong: ({ ...props }) => <strong className="font-bold text-indigo-600" {...props} />,
                             p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />
                           }}
                         >
@@ -504,19 +501,19 @@ export default function AIChatbot() {
               );
             })}
 
-            {/* Recommended Topics (Show only when just welcome message exists) */}
+            {/* Recommended Topics */}
             {messages.length === 1 && messages[0].role === 'ai' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="flex flex-wrap gap-2 mt-4 ml-0 md:ml-12"
+                className="flex flex-wrap gap-2 mt-4 ml-12"
               >
                 {recommendedTopics.map((topic) => (
                   <button
                     key={topic.id}
                     onClick={() => handleTopicClick(topic.text)}
-                    className="px-3 md:px-4 py-2 bg-white border border-primary/20 text-primary text-xs md:text-sm font-bold rounded-full hover:bg-primary/5 hover:scale-105 transition-all shadow-sm"
+                    className="px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 text-xs font-bold rounded-full hover:shadow-sm transition-all"
                   >
                     {topic.text}
                   </button>
@@ -525,45 +522,45 @@ export default function AIChatbot() {
             )}
             {isTyping && (
               <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-sm">AI</div>
-                <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 flex gap-1 items-center">
-                  <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="w-8 h-8 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-500 text-xs">AI</div>
+                <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-200 flex gap-1 items-center shadow-sm">
+                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-3 md:p-4 bg-white/80 backdrop-blur-md border-t border-gray-100">
-            <div className="flex gap-1 md:gap-2 items-center bg-gray-50/50 p-2 rounded-2xl border border-gray-200 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20 transition-all shadow-inner">
-              <button className="p-1.5 md:p-2 text-text-light hover:text-primary transition-colors flex-shrink-0">
-                <ImageIcon size={18} className="md:w-5 md:h-5" />
+          <div className="p-4 bg-white border-t border-slate-100">
+            <div className="flex gap-2 items-center bg-slate-50 p-2 rounded-2xl border border-slate-200 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+              <button className="p-2 text-slate-400 hover:text-indigo-600 transition-colors flex-shrink-0">
+                <ImageIcon size={20} />
               </button>
               <button
                 onClick={toggleListening}
                 className={clsx(
-                  "p-1.5 md:p-2 transition-colors rounded-full flex-shrink-0",
-                  isListening ? "bg-red-100 text-red-500 animate-pulse" : "text-text-light hover:text-primary"
+                  "p-2 transition-colors rounded-full flex-shrink-0",
+                  isListening ? "bg-red-50 text-red-500 animate-pulse" : "text-slate-400 hover:text-indigo-600"
                 )}
               >
-                {isListening ? <StopCircle size={18} className="md:w-5 md:h-5" /> : <Mic size={18} className="md:w-5 md:h-5" />}
+                {isListening ? <StopCircle size={20} /> : <Mic size={20} />}
               </button>
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={isListening ? (language === 'en' ? "Listening..." : (language === 'ko' ? "듣고 있습니다..." : (language === 'es' ? "Escuchando..." : "Ouvindo..."))) : (language === 'en' ? "Type your response..." : (language === 'ko' ? "메시지를 입력하세요..." : (language === 'es' ? "Escribe tu respuesta..." : "Digite sua resposta...")))}
-                className="flex-1 bg-transparent border-none focus:ring-0 text-text-primary placeholder:text-text-light text-sm md:text-lg"
+                placeholder={isListening ? "Listening..." : "Type your message..."}
+                className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 placeholder:text-slate-400 text-sm"
               />
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim()}
-                className="p-2 md:p-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md flex-shrink-0"
+                className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0"
               >
-                <Send size={18} className="md:w-5 md:h-5" />
+                <Send size={18} />
               </button>
             </div>
           </div>

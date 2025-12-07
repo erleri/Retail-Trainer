@@ -1,0 +1,20 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5173",
+  "executionArgs": {
+    "projectName": "GTM Manager",
+    "projectPath": "C:\\Users\\Koo Imjun\\GTM Manager",
+    "testIds": [
+      "TC007",
+      "TC008",
+      "TC010"
+    ],
+    "additionalInstruction": "Review the Admin Console crash fix (TC007, TC008) and Navigation link fixes (TC010). Ensure the crash in CustomerManager.jsx is gone.",
+    "envs": {
+      "API_KEY": "sk-user-HbE5HN5DKjYDcWE0nz0BjBtKjrty3j8Cpc4jInTTT_jTodZTFC7lU1Ab_7HFlEAogGDBJjLfqjeCNoPuWB9ngvi4imw7ckDtC1wV99uMOpZce6I8n37tN8IIfWHnpTxXzpM"
+    }
+  },
+  "proxy": "http://e8c1c84d-e5fe-42fd-97ab-a3c491abda14:obPpyt91XwXdlP3lsrpTYh94gjyMmzAe@tun.testsprite.com:8080"
+}

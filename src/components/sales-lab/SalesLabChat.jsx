@@ -6,6 +6,9 @@ import { aiService } from '../../lib/gemini';
 import ChatMessage from './ChatMessage';
 import clsx from 'clsx';
 import { useAppStore } from '../../store/appStore';
+import { MotionCard } from '../ui/modern/MotionCard';
+import { PulseButton } from '../ui/modern/PulseButton';
+import { VoiceVisualizer } from './VoiceVisualizer';
 
 const SALES_STEPS = [
     { id: 'greeting', label: 'Greeting', fullLabel: 'Greeting & Rapport' },
@@ -42,8 +45,6 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
         ({ currentLocation, nextLocation }) =>
             !isSessionEnded && messages.length > 0 && currentLocation.pathname !== nextLocation.pathname
     );
-
-
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef('');
@@ -113,7 +114,6 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
     const tLab = t.lab;
 
     // Load Voices
-    // Load Voices with Timeout
     useEffect(() => {
         const loadVoices = () => {
             const available = window.speechSynthesis.getVoices();
@@ -129,7 +129,6 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
             window.speechSynthesis.onvoiceschanged = loadVoices;
         }
 
-        // Fallback: If voices don't load within 3 seconds, proceed anyway
         const timeoutId = setTimeout(() => {
             setVoicesLoaded(prev => {
                 if (!prev) {
@@ -185,25 +184,21 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
         const languageVoices = voices.filter(v => v.lang.toLowerCase().includes(voiceLangSearch));
 
         if (languageVoices.length > 0) {
-            // Priority 1: Gender Match + High Quality
             selectedVoice = languageVoices.find(v =>
                 v.name.toLowerCase().includes(gender) &&
                 (v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Premium') || v.name.includes('Google') || v.name.includes('Neural'))
             );
 
-            // Priority 2: Gender Match (Standard Quality)
             if (!selectedVoice) {
                 selectedVoice = languageVoices.find(v => v.name.toLowerCase().includes(gender));
             }
 
-            // Priority 3: High Quality (Any Gender) - Fallback only if NO gender match
             if (!selectedVoice) {
                 selectedVoice = languageVoices.find(v =>
                     (v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Premium') || v.name.includes('Google') || v.name.includes('Neural'))
                 );
             }
 
-            // Priority 4: First available
             if (!selectedVoice) selectedVoice = languageVoices[0];
         }
 
@@ -233,6 +228,7 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
 
         try {
             aiService.analyzeInteraction(textToSend, messages, config, language).then(analysis => {
+                if (analysis.error === 'QUOTA_EXCEEDED') return;
                 if (analysis.nextStep && SALES_STEPS.findIndex(s => s.id === analysis.nextStep) > SALES_STEPS.findIndex(s => s.id === currentStep)) {
                     setCurrentStep(analysis.nextStep);
                 }
@@ -248,17 +244,14 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                 language,
                 true,
                 (chunk) => setStreamingText(prev => prev + chunk),
-                messages  // Pass conversation history for context
+                messages
             );
 
             setMessages(prev => [...prev, { role: 'ai', text: response.text }]);
             setStreamingText('');
             speakText(response.speech);
 
-            // Enhanced session end detection
             const lowerResponse = response.text.toLowerCase();
-            
-            // Multi-language end keywords with more variations
             const endKeywords = {
                 en: ['goodbye', 'bye', 'see you', 'take care', 'have a nice day', 'farewell', 'see ya', 'catch you'],
                 ko: ['안녕', '안녕히', '가볼게요', '다음에', '잘 가세요', '뵙겠습니다', '안녕히 가세요', '그럼 이만'],
@@ -269,7 +262,6 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
             const langKeywords = endKeywords[language] || [...endKeywords.en, ...endKeywords.ko];
             const isEnding = langKeywords.some(k => lowerResponse.includes(k.toLowerCase()));
 
-            // Also check if customer is showing buying signals or agreement
             const closingKeywords = {
                 en: ['perfect', 'great', 'sounds good', 'i\'ll take it', 'let\'s do it', 'count me in', 'deal', 'yes please', 'absolutely'],
                 ko: ['좋습니다', '괜찮습니다', '그렇게', '진행', '괜찮아요', '됐어요', '네 좋습니다', '그럴게요'],
@@ -280,10 +272,6 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
             const closingLangKeywords = closingKeywords[language] || [...closingKeywords.en, ...closingKeywords.ko];
             const isClosing = closingLangKeywords.some(k => lowerResponse.includes(k.toLowerCase()));
 
-            // Session ends if:
-            // 1. Customer says goodbye (direct ending)
-            // 2. Customer agrees to buy AND we're in closing stage (natural ending)
-            // 3. Conversation has reached 20+ exchanges (timeout)
             if (isEnding || (isClosing && currentStep === 'closing') || messages.length >= 40) {
                 console.log("Session ending triggered:", { isEnding, isClosing, currentStep, messageCount: messages.length });
                 setIsSessionEnded(true);
@@ -330,7 +318,6 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
         }
     };
 
-    // Initialize Speech Recognition
     useEffect(() => {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -373,8 +360,6 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
 
     useEffect(() => {
         if (!voicesLoaded) return;
-
-        // Skip initialization if we already have messages or resuming a session
         if (messages.length > 0 || initialState) return;
 
         const initChat = async () => {
@@ -391,7 +376,7 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
             }
         };
         initChat();
-    }, [voicesLoaded]); // Only depend on voicesLoaded to prevent re-initialization
+    }, [voicesLoaded]);
 
     const handleExitAttempt = () => {
         window.speechSynthesis.cancel();
@@ -420,7 +405,7 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
         if (blocker.state === "blocked") {
             blocker.proceed();
         } else {
-            onEnd(null); // Or navigate home if triggered manually
+            onEnd(null);
         }
     };
 
@@ -444,83 +429,90 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
     const currentStepIndex = SALES_STEPS.findIndex(s => s.id === currentStep);
 
     return (
-        <div className="h-full flex flex-col bg-gray-50 relative overflow-hidden font-sans">
-            {/* Background Decoration */}
-            <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-blue-50 to-transparent pointer-events-none" />
-
-            {/* Header: Glassmorphism & Stepper */}
-            <div className="bg-white/80 backdrop-blur-md border-b border-gray-200 z-10 sticky top-0 transition-all duration-300">
+        <div className="h-full flex flex-col relative overflow-hidden font-sans text-slate-800 bg-slate-50">
+            {/* Header: Arena HUD - Light Mode */}
+            <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 z-20 sticky top-0 shadow-sm">
                 <div className="max-w-6xl mx-auto px-4 py-3">
                     <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-3">
-                            <button onClick={handleExitAttempt} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <button onClick={handleExitAttempt} className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-900 transition-all">
                                 <ArrowLeft size={20} />
                             </button>
                             <div>
-                                <h2 className="font-bold text-gray-900 text-lg leading-tight">{tLab.title}</h2>
-                                <p className="text-xs text-gray-500">{config.product.name} • {config.customer.name}</p>
+                                <h2 className="font-black text-slate-900 text-xl tracking-tight flex items-center gap-2">
+                                    <Sparkles size={18} className="text-primary" />
+                                    {tLab.title}
+                                </h2>
+                                <p className="text-xs text-slate-500 font-medium flex gap-2">
+                                    <span className="text-slate-700 font-bold">{config.product.name}</span>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="text-primary">{config.customer.name}</span>
+                                </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setShowGuide(!showGuide)}
                                 className={clsx(
-                                    "p-2 rounded-full transition-colors relative",
-                                    showGuide ? "bg-yellow-100 text-yellow-600" : "hover:bg-gray-100 text-gray-500"
+                                    "p-2.5 rounded-xl transition-all relative border",
+                                    showGuide
+                                        ? "bg-amber-50 border-amber-200 text-amber-600 shadow-sm"
+                                        : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50"
                                 )}
                             >
                                 <Lightbulb size={20} />
-                                {!showGuide && objectionHint && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />}
-                            </button>
-                            <button onClick={handleExitAttempt} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
-                                <X size={20} />
+                                {!showGuide && objectionHint && (
+                                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse ring-2 ring-white" />
+                                )}
                             </button>
                         </div>
                     </div>
 
-                    {/* Stepper */}
-                    <div className="flex items-center justify-between relative px-2">
-                        {/* Progress Line */}
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-200 -z-10" />
-                        <div
-                            className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary transition-all duration-500 -z-10"
-                            style={{ width: `${(currentStepIndex / (SALES_STEPS.length - 1)) * 100}%` }}
-                        />
+                    {/* Progress Bar (HUD Style) */}
+                    <div className="relative pt-2 pb-1">
+                        <div className="flex items-center justify-between relative z-10">
+                            {SALES_STEPS.map((step, index) => {
+                                const isActive = index === currentStepIndex;
+                                const isCompleted = index < currentStepIndex;
 
-                        {SALES_STEPS.map((step, index) => {
-                            const isActive = index === currentStepIndex;
-                            const isCompleted = index < currentStepIndex;
-
-                            return (
-                                <div key={step.id} className="flex flex-col items-center gap-1 bg-white px-1">
-                                    <div
-                                        className={clsx(
-                                            "w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 z-10",
-                                            isActive ? "border-primary bg-primary text-white scale-110 shadow-lg shadow-primary/30" :
-                                                isCompleted ? "border-primary bg-white text-primary" : "border-gray-300 bg-white text-gray-300"
-                                        )}
-                                    >
-                                        {isCompleted ? <CheckCircle2 size={16} /> : isActive ? <PlayCircle size={16} /> : <Circle size={16} />}
+                                return (
+                                    <div key={step.id} className="flex flex-col items-center gap-2 relative group">
+                                        <div
+                                            className={clsx(
+                                                "w-3 h-3 rounded-full transition-all duration-300 relative z-10 box-content border-2",
+                                                isActive ? "bg-white border-primary shadow-lg scale-125" :
+                                                    isCompleted ? "bg-primary border-primary" : "bg-slate-200 border-slate-300"
+                                            )}
+                                        />
+                                        <span className={clsx(
+                                            "text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 absolute top-5 w-24 text-center select-none",
+                                            isActive ? "text-primary opacity-100" :
+                                                isCompleted ? "text-slate-500" : "text-slate-300"
+                                        )}>
+                                            {step.label}
+                                        </span>
                                     </div>
-                                    <span className={clsx(
-                                        "text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 absolute top-8 w-20 text-center",
-                                        isActive ? "text-primary" : isCompleted ? "text-gray-600" : "text-gray-300"
-                                    )}>
-                                        {step.label}
-                                    </span>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
+                        {/* Connecting Line */}
+                        <div className="absolute top-[5px] left-0 w-full h-[2px] bg-slate-200 -z-0 rounded-full overflow-hidden">
+                            <motion.div
+                                className="h-full bg-primary"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(currentStepIndex / (SALES_STEPS.length - 1)) * 100}%` }}
+                                transition={{ duration: 0.5, ease: "easeInOut" }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Area */}
+            {/* Main Arena */}
             <div className="flex-1 flex overflow-hidden relative">
-                {/* Chat Area - Full width on mobile, constrained on desktop */}
+                {/* Chat Area */}
                 <div className="flex-1 flex flex-col relative z-0 min-w-0">
-                    {/* Messages Container - Always scrollable */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth pb-56 md:pb-44 lg:pb-32">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth pb-32 md:pb-40 overscroll-contain">
                         <div className="max-w-3xl mx-auto space-y-6">
                             {messages.map((msg, index) => (
                                 <ChatMessage key={index} message={msg} />
@@ -530,367 +522,186 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                         </div>
                     </div>
 
-                    {/* Floating Input Bar */}
-                    <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-white via-white/90 to-transparent pt-12">
+                    {/* Floating Input Control Deck */}
+                    <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-white via-white/95 to-transparent pt-20 z-20">
                         <div className="max-w-3xl mx-auto">
                             <div className="flex flex-col gap-3">
-                                {/* End Session Button - Visible when session is active */}
                                 {messages.length > 2 && !isSessionEnded && (
                                     <button
                                         onClick={handleEndSession}
                                         disabled={isProcessing}
-                                        className="w-full px-4 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 font-semibold text-sm rounded-xl transition-all border border-orange-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 font-bold text-xs uppercase tracking-widest rounded-lg transition-all border border-slate-200 shadow-sm"
                                     >
-                                        🏁 대화 종료 및 평가하기
+                                        End Session & Evaluate
                                     </button>
                                 )}
 
-                                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-2 flex items-center gap-2 relative">
-                                    {/* Auto Mode Toggle */}
+                                <MotionCard className="!bg-white !backdrop-blur-xl !border-slate-200 p-2 flex items-center gap-3 !rounded-2xl shadow-xl shadow-slate-200/50 overflow-visible" glass={false}>
+                                    {/* Auto / Mic Toggle */}
                                     <button
                                         onClick={toggleListening}
                                         className={clsx(
-                                            "p-3 rounded-xl transition-all duration-300 flex items-center gap-2",
+                                            "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 relative",
                                             isAutoMode
-                                                ? isListening ? "bg-red-50 text-red-500" : "bg-primary/10 text-primary"
-                                                : "hover:bg-gray-100 text-gray-500"
+                                                ? isListening ? "bg-red-50 text-red-500 ring-1 ring-red-200" : "bg-indigo-50 text-primary"
+                                                : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
                                         )}
-                                        title="Auto Conversation Mode"
                                     >
                                         {isAutoMode ? (
                                             isListening ? (
-                                                <>
-                                                    <span className="relative flex h-3 w-3">
-                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                                    </span>
-                                                    <span className="text-xs font-bold">ON AIR</span>
-                                                </>
+                                                <div className="relative">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                    <MicOff size={20} className="relative z-10" />
+                                                </div>
                                             ) : <MicOff size={20} />
                                         ) : <Mic size={20} />}
                                     </button>
 
-                                    <input
-                                        type="text"
-                                        ref={inputRef}
-                                        value={input}
-                                        onChange={(e) => {
-                                            setInput(e.target.value);
-                                            // Auto-disable voice mode when typing
-                                            if (isAutoMode && e.target.value.trim()) {
-                                                setIsAutoMode(false);
-                                                stopListening();
-                                            }
-                                        }}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                        placeholder={isAutoMode ? tLab.listening : tLab.inputPlaceholder}
-                                        className="flex-1 bg-transparent border-none focus:ring-0 text-gray-800 placeholder-gray-400"
-                                        disabled={isProcessing || isSessionEnded}
-                                    />
+                                    {/* Dynamic Input / Visualizer Area */}
+                                    <div className="flex-1 relative h-12 flex items-center">
+                                        <AnimatePresence mode="wait">
+                                            {isListening && isAutoMode ? (
+                                                <motion.div
+                                                    key="visualizer"
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="w-full flex items-center justify-center"
+                                                >
+                                                    <VoiceVisualizer isActive={true} color="#4F46E5" />
+                                                </motion.div>
+                                            ) : (
+                                                <motion.input
+                                                    key="text-input"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    type="text"
+                                                    ref={inputRef}
+                                                    value={input}
+                                                    onChange={(e) => {
+                                                        setInput(e.target.value);
+                                                        if (isAutoMode && e.target.value.trim()) {
+                                                            setIsAutoMode(false);
+                                                            stopListening();
+                                                        }
+                                                    }}
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                                    placeholder={tLab.inputPlaceholder}
+                                                    className="w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder-slate-400 font-medium"
+                                                    disabled={isProcessing || isSessionEnded}
+                                                />
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
 
-                                    <button
+                                    {/* Send Button */}
+                                    <PulseButton
                                         onClick={() => handleSend()}
                                         disabled={!input.trim() || isProcessing || isSessionEnded}
-                                        className="p-3 bg-primary text-white rounded-xl hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg active:scale-95"
+                                        className="w-12 h-12 !p-0 !rounded-xl"
+                                        pulse={input.trim().length > 0}
                                     >
                                         <Send size={20} />
-                                    </button>
-                                </div>
+                                    </PulseButton>
+                                </MotionCard>
                             </div>
-                            <div className="text-center mt-2">
-                                <p className="text-xs text-gray-400">
-                                    {isAutoMode ? "Auto-conversation active. Speak naturally." : "Type your response or click the mic for auto mode."}
-                                </p>
+                            <div className="text-center mt-3 h-4">
+                                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                                    {isAutoMode ? "Voice Mode Active" : "Text Mode Active"}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Side Guide Panel - Desktop Only (xl: screens and above) */}
+                {/* Strategy Panel (Desktop) - Light Mode */}
                 <AnimatePresence mode="wait">
                     {showGuide && (
                         <motion.div
                             initial={{ width: 0, opacity: 0 }}
-                            animate={{ width: 320, opacity: 1 }}
+                            animate={{ width: 340, opacity: 1 }}
                             exit={{ width: 0, opacity: 0 }}
-                            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                            className="hidden xl:flex border-l border-gray-200 bg-white/50 backdrop-blur-sm flex-col z-10"
+                            className="hidden xl:flex border-l border-slate-200 bg-white/60 backdrop-blur-xl flex-col z-10"
                         >
-                            <div className="w-80 flex flex-col h-full">
-                                <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
-                                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                        <Lightbulb size={18} className="text-yellow-500" />
-                                        {tLab.guide}
-                                    </h3>
-                                    <button onClick={() => setShowGuide(false)} className="text-gray-400 hover:text-gray-600">
-                                        <X size={18} />
-                                    </button>
+                            <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-white/50">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                    <Lightbulb size={16} className="text-amber-500" />
+                                    {tLab.guide}
+                                </h3>
+                                <button onClick={() => setShowGuide(false)} className="text-slate-400 hover:text-slate-900 transition-colors">
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+                                {/* Current Strategy */}
+                                <div className="space-y-3">
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tLab.stageStrategy}</h4>
+                                    <MotionCard className="!bg-indigo-50 !border-indigo-100 text-sm text-indigo-800 leading-relaxed p-4" glass={false}>
+                                        {tLab.strategies[currentStep]}
+                                    </MotionCard>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-                                    {/* Current Strategy */}
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.stageStrategy}</h4>
-                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 text-sm text-blue-800 leading-relaxed">
-                                            {tLab.strategies[currentStep]}
-                                        </div>
-                                    </div>
+                                {/* Objection Hint */}
+                                <AnimatePresence>
+                                    {objectionHint && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="space-y-3"
+                                        >
+                                            <h4 className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-2">
+                                                <Sparkles size={12} /> {tLab.objectionHint}
+                                            </h4>
+                                            <MotionCard className="!bg-red-50 !border-red-100 text-sm text-red-600 leading-relaxed p-4" glass={false}>
+                                                {objectionHint}
+                                            </MotionCard>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
-                                    {/* Objection Hint */}
-                                    <AnimatePresence>
-                                        {objectionHint && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="space-y-2"
-                                            >
-                                                <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                                                    <Sparkles size={12} /> {tLab.objectionHint}
-                                                </h4>
-                                                <div className="p-4 bg-red-50/50 rounded-xl border border-red-100 text-sm text-red-800 leading-relaxed shadow-sm">
-                                                    {objectionHint}
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-
-                                    {/* Selling Points */}
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.sellingPoints}</h4>
-                                        <ul className="space-y-3">
-                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                                <span>AI Processor Alpha 11</span>
-                                            </li>
-                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                                <span>Brightness Booster Max</span>
-                                            </li>
-                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                                <span>One Wall Design</span>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                {/* Selling Points */}
+                                <div className="space-y-3">
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tLab.sellingPoints}</h4>
+                                    <ul className="space-y-2">
+                                        <li className="flex gap-3 text-sm text-slate-600 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                                            <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                            <span>AI Processor Alpha 11</span>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Bottom Sheet Guide Panel - Mobile/Tablet (xl: hidden) */}
-                <AnimatePresence mode="wait">
-                    {showGuide && (
-                        <>
-                            {/* Backdrop */}
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setShowGuide(false)}
-                                className="xl:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
-                            />
-
-                            {/* Bottom Sheet */}
-                            <motion.div
-                                initial={{ y: "100%" }}
-                                animate={{ y: 0 }}
-                                exit={{ y: "100%" }}
-                                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                                className="xl:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-gray-100 max-h-[70vh] flex flex-col z-50"
-                            >
-                                {/* Drag Handle */}
-                                <div className="w-full flex justify-center pt-3 pb-1" onClick={() => setShowGuide(false)}>
-                                    <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-                                </div>
-
-                                <div className="px-5 pb-4 border-b border-gray-50 flex justify-between items-center">
-                                    <h3 className="font-bold text-gray-800 flex items-center gap-2 text-base">
-                                        <Lightbulb size={18} className="text-yellow-500" />
-                                        {tLab.guide}
-                                    </h3>
-                                    <button onClick={() => setShowGuide(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
-                                        <X size={20} />
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar pb-10">
-                                    {/* Current Strategy */}
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.stageStrategy}</h4>
-                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 text-sm text-blue-800 leading-relaxed">
-                                            {tLab.strategies[currentStep]}
-                                        </div>
-                                    </div>
-
-                                    {/* Objection Hint */}
-                                    <AnimatePresence>
-                                        {objectionHint && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="space-y-2"
-                                            >
-                                                <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                                                    <Sparkles size={12} /> {tLab.objectionHint}
-                                                </h4>
-                                                <div className="p-4 bg-red-50/50 rounded-xl border border-red-100 text-sm text-red-800 leading-relaxed shadow-sm">
-                                                    {objectionHint}
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-
-                                    {/* Selling Points */}
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{tLab.sellingPoints}</h4>
-                                        <ul className="space-y-3">
-                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                                <span>AI Processor Alpha 11</span>
-                                            </li>
-                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                                <span>Brightness Booster Max</span>
-                                            </li>
-                                            <li className="flex gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                                <span>One Wall Design</span>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </>
                     )}
                 </AnimatePresence>
             </div>
 
-            {/* Session End Modal - Mobile Optimized */}
+            {/* Modals (Session End, Loading, etc.) - Light Mode */}
             <AnimatePresence>
-                {isSessionEnded && !showResultButton && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-4">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="bg-white rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-sm p-6 md:p-8 text-center relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 left-0 w-full h-1 md:h-2 bg-gradient-to-r from-green-400 to-blue-500" />
-                            
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
-                                className="w-16 h-16 md:w-20 md:h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 text-green-500 shadow-inner"
-                            >
-                                <Sparkles size={32} className="md:w-10 md:h-10" />
-                            </motion.div>
-                            
-                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3">
-                                {language === 'ko' ? '세션 완료!' : language === 'es' ? '¡Sesión Completada!' : language === 'pt-br' ? 'Sessão Concluída!' : 'Session Completed!'}
-                            </h2>
-                            
-                            <p className="text-sm md:text-base text-gray-600 mb-6 md:mb-8 leading-relaxed">
-                                {language === 'ko' ? '고객과의 대화가 끝났어요. 이제 당신의 판매 스킬을 분석해드리겠습니다!' : language === 'es' ? '¡Excelente trabajo! El cliente ha terminado la conversación. ¿Listo para ver cómo te fue?' : language === 'pt-br' ? 'Ótimo trabalho! O cliente encerrou a conversa. Pronto para ver como você se saiu?' : 'Great job! The customer has ended the conversation. Ready to see how you performed?'}
-                            </p>
-
-                            {isProcessing && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="mb-6 md:mb-8 flex flex-col items-center"
-                                >
-                                    <div className="flex gap-1 mb-3">
-                                        <motion.div
-                                            animate={{ scale: [1, 1.2, 1] }}
-                                            transition={{ duration: 0.8, repeat: Infinity }}
-                                            className="w-2 h-2 md:w-3 md:h-3 bg-primary rounded-full"
-                                        />
-                                        <motion.div
-                                            animate={{ scale: [1, 1.2, 1] }}
-                                            transition={{ duration: 0.8, repeat: Infinity, delay: 0.2 }}
-                                            className="w-2 h-2 md:w-3 md:h-3 bg-primary rounded-full"
-                                        />
-                                        <motion.div
-                                            animate={{ scale: [1, 1.2, 1] }}
-                                            transition={{ duration: 0.8, repeat: Infinity, delay: 0.4 }}
-                                            className="w-2 h-2 md:w-3 md:h-3 bg-primary rounded-full"
-                                        />
-                                    </div>
-                                    <p className="text-xs md:text-sm text-gray-500">
-                                        {language === 'ko' ? '피드백을 생성 중입니다...' : language === 'es' ? 'Generando retroalimentación...' : language === 'pt-br' ? 'Gerando feedback...' : 'Generating feedback...'}
-                                    </p>
-                                </motion.div>
-                            )}
-                            
-                            <div className="flex flex-col gap-3 md:gap-4">
-                                <button
-                                    onClick={handleEndSession}
-                                    disabled={isProcessing}
-                                    className="w-full px-4 md:px-6 py-3 md:py-3.5 bg-gradient-to-r from-primary to-primary-hover text-white font-bold text-sm md:text-base rounded-xl md:rounded-xl hover:shadow-lg transition-all shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-lg disabled:hover:-translate-y-0"
-                                >
-                                    {isProcessing ? (language === 'ko' ? '분석 중...' : 'Analyzing...') : (language === 'ko' ? '결과 보기' : language === 'es' ? 'Ver Resultados' : language === 'pt-br' ? 'Ver Resultados' : 'View Results')}
-                                </button>
-                                
-                                {!isProcessing && (
-                                    <button
-                                        onClick={() => setShowResultButton(true)}
-                                        className="w-full px-4 md:px-6 py-2 md:py-3 bg-gray-100 text-gray-700 font-semibold text-sm md:text-base rounded-xl hover:bg-gray-200 transition-colors"
-                                    >
-                                        {language === 'ko' ? '나중에 보기' : language === 'es' ? 'Revisar Después' : language === 'pt-br' ? 'Revisar Depois' : 'Review Later'}
-                                    </button>
-                                )}
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Floating Result Button */}
-            <AnimatePresence>
-                {showResultButton && (
-                    <motion.button
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        onClick={handleEndSession}
-                        disabled={isProcessing}
-                        className="absolute bottom-24 right-6 z-40 bg-primary text-white px-6 py-3 rounded-full font-bold shadow-xl hover:bg-primary-hover transition-colors flex items-center gap-2 disabled:opacity-50"
-                    >
-                        <Sparkles size={18} />
-                        {isProcessing ? t.common.loading : "View Results"}
-                    </motion.button>
-                )}
-            </AnimatePresence>
-
-            {/* Voice Loading Overlay */}
-            <AnimatePresence>
+                {/* Simplified Loading Overlay */}
                 {!voicesLoaded && (
-                    <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+                    <div className="fixed inset-0 bg-white/90 z-50 flex flex-col items-center justify-center">
                         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-                        <h2 className="text-xl font-bold text-gray-800">Initializing AI Voices...</h2>
-                        <p className="text-gray-500 mt-2">Getting ready for the best experience.</p>
+                        <h2 className="text-xl font-bold text-slate-900">Initializing Neural Voice...</h2>
                     </div>
                 )}
-            </AnimatePresence>
 
-            {/* Exit Warning Modal */}
-            <AnimatePresence>
+                {/* Exit Warning Modal */}
                 {showExitWarning && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
+                            className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
                         >
-                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
                                 <X size={24} />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">Exit Roleplay?</h3>
-                            <p className="text-gray-600 mb-6 text-sm">
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">Exit Roleplay?</h3>
+                            <p className="text-slate-500 mb-6 text-sm">
                                 If you leave now, your progress and evaluation data will be lost. Are you sure?
                             </p>
                             <div className="flex flex-col gap-3">
@@ -908,7 +719,7 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                                 </button>
                                 <button
                                     onClick={cancelExit}
-                                    className="w-full px-4 py-3 text-gray-500 font-medium hover:text-gray-700 transition-colors"
+                                    className="w-full px-4 py-3 text-slate-500 font-medium hover:text-slate-900 transition-colors"
                                 >
                                     Cancel
                                 </button>
@@ -916,22 +727,21 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
-            {/* Save & Exit Prompt Modal (Navigation Block) */}
-            <AnimatePresence>
+
+                {/* Save & Exit Prompt Modal (Navigation Block) */}
                 {showSavePrompt && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
+                            className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
                         >
-                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500">
+                            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500">
                                 <Save size={24} />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">Save Progress?</h3>
-                            <p className="text-gray-600 mb-6 text-sm">
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">Save Progress?</h3>
+                            <p className="text-slate-500 mb-6 text-sm">
                                 Do you want to save your current session before leaving? You can resume it later.
                             </p>
                             <div className="flex flex-col gap-3">
@@ -949,11 +759,39 @@ const SalesLabChat = ({ config, onEnd, initialState }) => {
                                 </button>
                                 <button
                                     onClick={handleCancelNavigation}
-                                    className="w-full px-4 py-3 text-gray-500 font-medium hover:text-gray-700 transition-colors"
+                                    className="w-full px-4 py-3 text-slate-500 font-medium hover:text-slate-900 transition-colors"
                                 >
                                     Cancel
                                 </button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* Session End Modal */}
+                {isSessionEnded && !showResultButton && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center relative overflow-hidden"
+                        >
+                            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 relative">
+                                <span className="absolute inset-0 rounded-full border-4 border-green-500/20 animate-ping" />
+                                <CheckCircle2 size={40} />
+                            </div>
+
+                            <h2 className="text-2xl font-black text-slate-900 mb-2">Roleplay Complete!</h2>
+                            <p className="text-slate-500 mb-8 leading-relaxed">
+                                Great job! The customer has reached a satisfactory conclusion. Ready to see your performance analysis?
+                            </p>
+
+                            <PulseButton
+                                onClick={handleEndSession}
+                                className="w-full py-4 text-lg font-bold shadow-xl shadow-primary/25"
+                            >
+                                View Analysis
+                            </PulseButton>
                         </motion.div>
                     </div>
                 )}

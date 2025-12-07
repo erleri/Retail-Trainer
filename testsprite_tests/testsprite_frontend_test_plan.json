@@ -1,0 +1,445 @@
+[
+  {
+    "id": "TC001",
+    "title": "Sales Lab - Complete Roleplay Session Normal Flow",
+    "description": "Verify a user can successfully complete the Sales Lab flow: Setup, Roleplay Chat with AI Customer, and Feedback without errors.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Sales Lab page"
+      },
+      {
+        "type": "action",
+        "description": "Complete Setup step with valid input data"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the Roleplay Chat interface is loaded"
+      },
+      {
+        "type": "action",
+        "description": "Engage in conversation with AI customer using text input"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify AI customer responds appropriately to user inputs"
+      },
+      {
+        "type": "action",
+        "description": "Complete roleplay by indicating purchase intent"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Feedback step is displayed with detailed performance metrics"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Sales Lab Auto Mode - TTS and STT Integration",
+    "description": "Verify that in Sales Lab Auto Mode, Text-to-Speech (TTS) plays fully before microphone activates for Speech-to-Text (STT) input.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Sales Lab and enable Auto Mode"
+      },
+      {
+        "type": "action",
+        "description": "Start roleplay chat and listen for AI customer TTS response"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify TTS output plays fully without interruption"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify microphone activates automatically after TTS finishes"
+      },
+      {
+        "type": "action",
+        "description": "Speak user response and verify it is captured by STT correctly"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Sales Lab Session Termination on Goodbye or Purchase Intent",
+    "description": "Verify that the Sales Lab session ends naturally when the user says goodbye or indicates a purchase intent.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Start a Sales Lab roleplay session"
+      },
+      {
+        "type": "action",
+        "description": "Send user utterance indicating goodbye"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the session terminates and feedback is triggered"
+      },
+      {
+        "type": "action",
+        "description": "Restart a new Sales Lab session"
+      },
+      {
+        "type": "action",
+        "description": "Send user utterance indicating purchase intent"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the session terminates and feedback is triggered"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "AI Chatbot Markdown Rendering and Response Splitting",
+    "description": "Verify that AI Chatbot responses are correctly split into summaries and detailed sections, and render markdown including bold text and tables.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open AI Chatbot interface"
+      },
+      {
+        "type": "action",
+        "description": "Send a query that triggers a long AI response containing markdown elements such as tables and bold text"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the response is split into summary and detailed parts"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify rendering of markdown elements is correct, including tables and bold styling"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Chat History Persistence Using IndexedDB",
+    "description": "Verify that chat histories in both Sales Lab and AI Chatbot are saved to and restored from IndexedDB correctly across sessions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Start a chat session in Sales Lab / AI Chatbot and enter multiple messages"
+      },
+      {
+        "type": "action",
+        "description": "Close the browser tab or refresh the page"
+      },
+      {
+        "type": "action",
+        "description": "Reopen Sales Lab / AI Chatbot and navigate to the chat interface"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that previous chat history is loaded from IndexedDB"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Mobile Chat Interface Usability with On-Screen Keyboard",
+    "description": "Ensure that on mobile devices, the chat input interface is not obscured by the on-screen keyboard and remains fully usable.",
+    "category": "ui",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access Sales Lab and AI Chatbot on a mobile device or emulator"
+      },
+      {
+        "type": "action",
+        "description": "Focus chat input field to trigger the on-screen keyboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify chat input is fully visible and accessible, not hidden behind the keyboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user can scroll chat history and type messages without interface issues"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Admin Console - User Management Functionalities",
+    "description": "Verify Admin Console allows admin to create, update, and delete users via the simulated backend API.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to Admin Console with valid admin credentials"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to User Management section"
+      },
+      {
+        "type": "action",
+        "description": "Create a new user with valid data and save"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new user appears in the user list"
+      },
+      {
+        "type": "action",
+        "description": "Edit the created user's role and save changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user's updated details are correctly displayed"
+      },
+      {
+        "type": "action",
+        "description": "Delete the created user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is removed from the user list"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Admin Console - Content and Product Management",
+    "description": "Verify admin can add, edit, and remove content and products, and changes persist via simulated APIs.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to Admin Console and navigate to Content Management"
+      },
+      {
+        "type": "action",
+        "description": "Add new study content with required fields and save"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify new content appears in the list"
+      },
+      {
+        "type": "action",
+        "description": "Edit existing content details and save"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated content details persist"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to Product Management"
+      },
+      {
+        "type": "action",
+        "description": "Add a new product and save"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify product appears in listing and details are correct"
+      },
+      {
+        "type": "action",
+        "description": "Delete a product"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify product is no longer listed"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Study Room - Tab Navigation and Content Loading",
+    "description": "Validate tabbed navigation in Study Room correctly switches between study materials and content loads with no errors.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Study Room page"
+      },
+      {
+        "type": "action",
+        "description": "Select each tab sequentially"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify content relevant to each tab loads completely"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no UI glitches or errors occur during tab switch"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Home Dashboard - Overview and Navigation Shortcuts",
+    "description": "Verify Home Dashboard loads user progress overview correctly and all quick access links navigate to respective pages.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in and open Home Dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user progress metrics are displayed and accurate"
+      },
+      {
+        "type": "action",
+        "description": "Click each quick access link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify navigation to the target page occurs correctly"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Sales Lab - Error Handling for Setup with Invalid Inputs",
+    "description": "Verify proper error messages and validation occur when invalid data is input during Sales Lab Setup.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Sales Lab Setup"
+      },
+      {
+        "type": "action",
+        "description": "Input invalid or empty required fields"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to proceed to next step"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify appropriate validation error messages are shown and progression is blocked"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "AI Chatbot - Voice Mode Toggle and Voice Input Handling",
+    "description": "Verify switching between voice mode and text mode works correctly and voice inputs are processed properly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open AI Chatbot and enable voice mode"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI updates to indicate voice mode active"
+      },
+      {
+        "type": "action",
+        "description": "Provide voice input and verify correct transcription"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify AI response is rendered with correct markdown and voice output plays if enabled"
+      },
+      {
+        "type": "action",
+        "description": "Disable voice mode and input text message"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text input is accepted and AI responds accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Admin Console - System Settings Update",
+    "description": "Verify that the admin can update system settings and changes are persisted and reflected across the platform.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to Admin Console and navigate to System Settings"
+      },
+      {
+        "type": "action",
+        "description": "Modify a system setting such as session timeout or voice settings"
+      },
+      {
+        "type": "action",
+        "description": "Save the settings"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify settings persist and the platform behavior reflects the updated settings"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Sales Lab - Edge Case Handling for Unexpected User Inputs",
+    "description": "Verify the Sales Lab roleplay gracefully handles unexpected or nonsensical user inputs without crashing or freezing.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Start a Sales Lab chat session"
+      },
+      {
+        "type": "action",
+        "description": "Send nonsensical or out-of-context inputs repeatedly"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify AI customer responds gracefully or prompts user to rephrase"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no application crashes or freezes occur"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Data Persistence - Zustand and IndexedDB Integration",
+    "description": "Verify the integration of Zustand state management with IndexedDB persistence works correctly preserving user state across sessions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform actions that modify global and user state such as adjusting settings or chat messages"
+      },
+      {
+        "type": "action",
+        "description": "Close and reopen the application"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify modified state is restored correctly via IndexedDB and Zustand stores"
+      }
+    ]
+  }
+]

@@ -1,27 +1,91 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Play, User, Monitor, Shuffle, History, Info, BarChart, Check, ChevronDown, ChevronUp, Lock, List, X, Star, ArrowLeft, Settings } from 'lucide-react';
+import { Play, User, Monitor, Shuffle, History, Info, List, X, Star, ArrowLeft, Settings, Check, Sparkles, Target, Database, CheckCircle2 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
 import { translations } from '../../constants/translations';
-import { PERSONAS, DIFFICULTY_LEVELS, ALL_TRAITS, TRAIT_DEFINITIONS, PRODUCT_CATALOG, UPSELL_TRIGGERS, AGES, GENDERS } from '../../constants/salesLabData';
+import { operatorApi } from '../../services/operatorApi';
 import { recommendationEngine } from '../../lib/recommendationEngine';
+import { AGES, GENDERS } from '../../constants/salesLabData';
+import { MotionCard } from '../ui/modern/MotionCard';
+import { PulseButton } from '../ui/modern/PulseButton';
 
 export default function SalesLabSetup({ onStart, onViewHistory }) {
-    const { language } = useAppStore();
+    const { language, isDemoMode, toggleDemoMode } = useAppStore();
     const t = translations[language] || translations['en'];
 
-    // State
-    const [selectedType, setSelectedType] = useState(PRODUCT_CATALOG.types[0]);
-    const [selectedCategory, setSelectedCategory] = useState(PRODUCT_CATALOG.categories['TV'][0]);
-    const [selectedModel, setSelectedModel] = useState(PRODUCT_CATALOG.models['OLED'][0]);
-    const [selectedSize, setSelectedSize] = useState(55);
-    const [selectedTraits, setSelectedTraits] = useState([ALL_TRAITS[0], ALL_TRAITS[2]]);
-    const [difficulty, setDifficulty] = useState(DIFFICULTY_LEVELS[1]);
+    // --- Loading State ---
+    const [isLoading, setIsLoading] = useState(true);
+    const [catalog, setCatalog] = useState(null);
+    const [personas, setPersonas] = useState([]);
+    const [traits, setTraits] = useState([]);
+    const [difficulties, setDifficulties] = useState([]);
+    const [upsellRules, setUpsellRules] = useState([]);
+
+    // --- Selection State ---
+    const [selectedType, setSelectedType] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedModel, setSelectedModel] = useState(null);
+    const [selectedSize, setSelectedSize] = useState(0);
+
+    const [selectedTraits, setSelectedTraits] = useState([]);
+    const [difficulty, setDifficulty] = useState(null);
     const [age, setAge] = useState('30s');
     const [gender, setGender] = useState('Male');
+
     const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
-    const [activeMobileSection, setActiveMobileSection] = useState(null);
     const [hasSavedSession, setHasSavedSession] = useState(false);
+
+    // --- Data Fetching ---
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoading(true);
+            try {
+                const [catRes, perRes, traitRes, diffRes, ruleRes] = await Promise.all([
+                    operatorApi.getProductCatalog(),
+                    operatorApi.getPersonas(),
+                    operatorApi.getTraits(),
+                    operatorApi.getDifficulties(),
+                    operatorApi.getUpsellRules()
+                ]);
+
+                if (catRes.success) setCatalog(catRes.data.catalog);
+                if (perRes.success) setPersonas(perRes.data.personas);
+                if (traitRes.success) setTraits(traitRes.data.traits);
+                if (diffRes.success) setDifficulties(diffRes.data.levels);
+                if (ruleRes.success) setUpsellRules(ruleRes.data.rules);
+
+                // Initialize defaults
+                if (catRes.success && catRes.data.catalog) {
+                    const c = catRes.data.catalog;
+                    const type = c.types[0];
+                    const cat = c.categories[type]?.[0];
+                    const model = c.models[cat]?.[0];
+                    if (model) {
+                        setSelectedType(type);
+                        setSelectedCategory(cat);
+                        setSelectedModel(model);
+                        setSelectedSize(model.sizes[0]);
+                    }
+                }
+
+                if (diffRes.success && diffRes.data.levels.length > 0) {
+                    setDifficulty(diffRes.data.levels[1] || diffRes.data.levels[0]);
+                }
+
+                if (traitRes.success && traitRes.data.traits.length >= 2) {
+                    setSelectedTraits([traitRes.data.traits[0].id, traitRes.data.traits[1].id]);
+                }
+
+            } catch (e) {
+                console.error("Failed to load Operator Data", e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadData();
+    }, []);
 
     useEffect(() => {
         const saved = localStorage.getItem('salesLab_savedSession');
@@ -30,30 +94,40 @@ export default function SalesLabSetup({ onStart, onViewHistory }) {
         }
     }, []);
 
-    // Derived State
-    const matchedPersona = PERSONAS.find(p =>
-        p.surface_traits.every(t => selectedTraits.includes(t))
-    ) || null;
+    // --- Derived Lookup & Scoring ---
+    const traitDefinitions = useMemo(() => {
+        return traits.reduce((acc, t) => ({ ...acc, [t.id]: t }), {});
+    }, [traits]);
 
-    const upsellInfo = matchedPersona ? UPSELL_TRIGGERS[matchedPersona.id] : null;
+    const matchedPersona = useMemo(() => {
+        return personas.find(p => {
+            return p.mainTraits.every(tId => selectedTraits.includes(tId));
+        }) || null;
+    }, [personas, selectedTraits]);
+
+    const upsellInfo = useMemo(() => {
+        if (!matchedPersona) return null;
+        const rule = upsellRules.find(r =>
+            r.customer?.includeTraits?.some(t => matchedPersona.mainTraits.includes(t))
+        );
+        if (rule && rule.messages.length > 0) {
+            return {
+                text: rule.messages[0].template.replace('{recommendedSize}', 'larger size'),
+                recommendedSizes: [75, 77, 83, 86, 97]
+            };
+        }
+        return null;
+    }, [matchedPersona, upsellRules]);
 
     const mappedTraits = useMemo(() => {
-        return selectedTraits.map(t => {
-            const key = Object.keys(TRAIT_DEFINITIONS).find(k => k === t);
-            if (!key) {
-                console.warn(`Trait not found in definitions: ${t}`);
-                return { id: t.toLowerCase().replace(/ /g, '_').replace(/-/g, '_') };
-            }
-            return { id: key.toLowerCase().replace(/-/g, '_') };
-        });
-    }, [selectedTraits]);
+        return selectedTraits.map(id => traitDefinitions[id] || { id });
+    }, [selectedTraits, traitDefinitions]);
 
     const productScores = useMemo(() => {
         if (!matchedPersona || !difficulty) return null;
         try {
             return recommendationEngine.calculateProductScores(mappedTraits, matchedPersona, difficulty);
         } catch (error) {
-            console.error("Error calculating recommendations:", error);
             return null;
         }
     }, [mappedTraits, matchedPersona, difficulty]);
@@ -63,608 +137,268 @@ export default function SalesLabSetup({ onStart, onViewHistory }) {
         try {
             return recommendationEngine.calculateUpsellScore(mappedTraits, matchedPersona, age);
         } catch (error) {
-            console.error("Error calculating recommendations:", error);
             return null;
         }
     }, [mappedTraits, matchedPersona, age]);
 
-    // Handlers
-    const toggleTrait = (trait) => {
-        if (selectedTraits.includes(trait)) {
-            setSelectedTraits(prev => prev.filter(t => t !== trait));
+    // --- Handlers ---
+    const toggleTrait = (traitId) => {
+        if (selectedTraits.includes(traitId)) {
+            setSelectedTraits(prev => prev.filter(t => t !== traitId));
         } else {
             if (selectedTraits.length >= 2) return;
-            setSelectedTraits(prev => [...prev, trait]);
+            setSelectedTraits(prev => [...prev, traitId]);
         }
     };
 
     const handlePresetSelect = (persona) => {
-        setSelectedTraits(persona.surface_traits);
-        setAge(persona.base_profile.age_group);
-        setGender(persona.base_profile.gender);
+        setSelectedTraits(persona.mainTraits);
+        setAge(persona.ageGroup);
+        setGender(persona.gender);
         setIsPresetModalOpen(false);
     };
 
     const randomizeProduct = () => {
-        const types = PRODUCT_CATALOG.types;
+        if (!catalog) return;
+        const types = catalog.types;
         const randomType = types[Math.floor(Math.random() * types.length)];
         setSelectedType(randomType);
 
-        const cats = PRODUCT_CATALOG.categories[randomType] || [];
+        const cats = catalog.categories[randomType] || [];
         if (cats.length > 0) {
             const randomCat = cats[Math.floor(Math.random() * cats.length)];
             setSelectedCategory(randomCat);
 
-            const models = PRODUCT_CATALOG.models[randomCat] || [];
+            const models = catalog.models[randomCat] || [];
             if (models.length > 0) {
                 const randomModel = models[Math.floor(Math.random() * models.length)];
                 setSelectedModel(randomModel);
-
                 const sizes = randomModel.sizes;
-                const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
-                setSelectedSize(randomSize);
+                setSelectedSize(sizes[Math.floor(Math.random() * sizes.length)]);
             }
         }
     };
 
     const randomizeConfig = () => {
-        // Randomize Configuration
-        const randomPersona = PERSONAS[Math.floor(Math.random() * PERSONAS.length)];
-        const randomDifficulty = DIFFICULTY_LEVELS[Math.floor(Math.random() * DIFFICULTY_LEVELS.length)];
+        if (!catalog || personas.length === 0) return;
+        const randomPersona = personas[Math.floor(Math.random() * personas.length)];
+        const randomDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
 
-        // Set state
-        setSelectedTraits(randomPersona.surface_traits);
+        setSelectedTraits(randomPersona.mainTraits);
         setDifficulty(randomDifficulty);
-        setAge(randomPersona.base_profile.age_group);
-        setGender(randomPersona.base_profile.gender);
-
-        // Randomize Product
-        const types = PRODUCT_CATALOG.types;
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        setSelectedType(randomType);
-
-        const categories = PRODUCT_CATALOG.categories[randomType] || [];
-        if (categories.length > 0) {
-            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-            setSelectedCategory(randomCategory);
-
-            const models = PRODUCT_CATALOG.models[randomCategory] || [];
-            if (models.length > 0) {
-                const randomModel = models[Math.floor(Math.random() * models.length)];
-                setSelectedModel(randomModel);
-                setSelectedSize(randomModel.sizes[Math.floor(Math.random() * randomModel.sizes.length)]);
-            }
-        }
+        setAge(randomPersona.ageGroup);
+        setGender(randomPersona.gender);
+        randomizeProduct();
     };
 
-    // Auto-randomize on mount
-    useEffect(() => {
-        randomizeConfig();
-    }, []);
-
     const handleStart = () => {
-        // Map traits to objects with ID and details
-        const mappedTraits = selectedTraits.map(t => {
-            const snakeCaseId = t.toLowerCase().replace(/ /g, '_').replace(/-/g, '_');
-            return {
-                id: snakeCaseId,
-                ...TRAIT_DEFINITIONS[t]
-            };
-        });
-
         onStart({
             customer: {
                 name: matchedPersona ? matchedPersona.name : "Custom Customer",
+                personaId: matchedPersona?.id,
                 persona: matchedPersona,
                 traits: mappedTraits,
                 age,
-                gender
+                gender,
+                difficulty
             },
-            product: {
-                ...selectedModel,
-                size: selectedSize
-            },
+            product: { ...selectedModel, size: selectedSize },
             difficulty
         });
     };
 
-    const renderProductContent = () => (
-        <div className="space-y-6">
-            {/* Step 1: Type */}
-            <div className="flex p-1 bg-gray-100 rounded-lg">
-                {PRODUCT_CATALOG.types.map(type => (
-                    <button
-                        key={type}
-                        onClick={() => setSelectedType(type)}
-                        className={clsx(
-                            "flex-1 py-1.5 text-xs font-bold rounded-md transition-all",
-                            selectedType === type ? "bg-white text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
-                        )}
-                    >
-                        {type}
-                    </button>
-                ))}
-            </div>
-
-            {/* Step 2: Category (with Badges) */}
-            <div className="flex flex-wrap gap-2">
-                {PRODUCT_CATALOG.categories[selectedType]?.map(cat => {
-                    const isBest = productScores?.bestMatch === cat;
-                    const isAlt = productScores?.alternative === cat;
-
-                    return (
-                        <button
-                            key={cat}
-                            onClick={() => { setSelectedCategory(cat); setSelectedModel(PRODUCT_CATALOG.models[cat][0]); }}
-                            className={clsx(
-                                "px-3 py-1.5 rounded-full text-xs font-bold border transition-all relative",
-                                selectedCategory === cat
-                                    ? "bg-primary text-white border-primary shadow-md"
-                                    : "bg-white text-text-secondary border-gray-200 hover:border-gray-300",
-                                (isBest || isAlt) && "pr-2"
-                            )}
-                        >
-                            {cat}
-                            {isBest && <span className="ml-1 text-[10px] bg-yellow-400 text-black px-1 rounded-full">BEST</span>}
-                            {isAlt && <span className="ml-1 text-[10px] bg-gray-200 text-gray-600 px-1 rounded-full">ALT</span>}
+    // --- Renderers ---
+    const renderProductContent = () => {
+        if (!catalog || !selectedModel) return <div className="text-slate-500">Loading Catalog...</div>;
+        return (
+            <div className="space-y-6">
+                <div className="flex p-1 bg-slate-100 rounded-lg border border-slate-200">
+                    {catalog.types.map(type => (
+                        <button key={type} onClick={() => setSelectedType(type)} className={clsx("flex-1 py-2 text-xs font-bold rounded-md transition-all", selectedType === type ? "bg-white text-primary shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-900")}>{type}</button>
+                    ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {catalog.categories[selectedType]?.map(cat => {
+                        const isBest = productScores?.bestMatch === cat;
+                        const isAlt = productScores?.alternative === cat;
+                        return (
+                            <button key={cat} onClick={() => { setSelectedCategory(cat); setSelectedModel(catalog.models[cat][0]); }} className={clsx("px-4 py-2 rounded-full text-xs font-bold border transition-all relative", selectedCategory === cat ? "bg-primary text-white border-primary shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-900", (isBest || isAlt) && "pr-3")}>
+                                {cat}
+                                {isBest && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-400 rounded-full border border-white" />}
+                                {isAlt && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-slate-400 rounded-full border border-white" />}
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+                    {catalog.models[selectedCategory]?.map(model => (
+                        <button key={model.id} onClick={() => { setSelectedModel(model); setSelectedSize(model.sizes[0]); }} className={clsx("w-full p-4 rounded-xl border text-left transition-all", selectedModel.id === model.id ? "bg-indigo-50 border-primary/50 text-indigo-900" : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700")}>
+                            <div className="font-bold text-sm flex justify-between">{model.name} {selectedModel.id === model.id && <Check size={16} className="text-primary" />}</div>
+                            <div className="text-xs opacity-70 flex justify-between mt-1"><span>{model.line || model.type}</span><span>${model.basePrice}</span></div>
                         </button>
-                    );
-                })}
-            </div>
-
-            {/* Step 3: Model List */}
-            <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
-                {PRODUCT_CATALOG.models[selectedCategory]?.map(model => (
-                    <button
-                        key={model.id}
-                        onClick={() => { setSelectedModel(model); setSelectedSize(model.sizes[0]); }}
-                        className={clsx(
-                            "w-full p-3 rounded-xl border text-left transition-all",
-                            selectedModel.id === model.id
-                                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
-                                : "border-gray-100 hover:border-gray-300 bg-white"
-                        )}
-                    >
-                        <div className="font-bold text-text-primary text-sm">{model.name}</div>
-                        <div className="text-xs text-text-secondary flex justify-between mt-1">
-                            <span>{model.type}</span>
-                            <span>${model.basePrice}</span>
-                        </div>
-                    </button>
-                ))}
-            </div>
-
-            {/* Upselling & Details Area */}
-            <div className="pt-4 border-t border-gray-100 space-y-4">
-                {/* Upsell Recommendation Banner */}
-                {upsellScore?.recommendation === 'Strong' && (
-                    <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-md animate-pulse">
-                        <span>🔥</span> Large Screen Highly Recommended (75"+)
-                    </div>
-                )}
-
-                {/* Size Selection */}
-                <div>
-                    <div className="text-xs font-bold text-text-secondary mb-2 flex justify-between">
-                        <span>Select Size</span>
-                        <span className="text-primary">{selectedSize}"</span>
-                    </div>
+                    ))}
+                </div>
+                <div className="pt-4 border-t border-slate-100 space-y-4">
+                    <div className="text-xs font-bold text-slate-400 mb-3 flex justify-between uppercase tracking-wider"><span>Select Size</span><span className="text-primary">{selectedSize}"</span></div>
                     <div className="flex flex-wrap gap-2">
                         {selectedModel.sizes.map(size => {
-                            // Highlight large sizes if Strong recommendation
-                            const isUpsellTarget = upsellScore?.recommendation === 'Strong' && size >= 75;
-                            const isRecommended = upsellInfo?.recommendedSizes.includes(size) || isUpsellTarget;
-
-                            return (
-                                <button
-                                    key={size}
-                                    onClick={() => setSelectedSize(size)}
-                                    className={clsx(
-                                        "px-3 py-1.5 rounded-lg border text-xs font-bold transition-all relative",
-                                        selectedSize === size
-                                            ? "border-primary bg-primary/10 text-primary"
-                                            : "border-gray-200 text-text-secondary hover:border-gray-300",
-                                        isRecommended && "ring-1 ring-yellow-400 border-yellow-400",
-                                        isUpsellTarget && "bg-orange-50 border-orange-400 text-orange-600"
-                                    )}
-                                >
-                                    {size}"
-                                    {isRecommended && <Star size={8} className="absolute -top-1 -right-1 fill-yellow-400 text-yellow-400" />}
-                                </button>
-                            );
+                            const isRecommended = upsellInfo?.recommendedSizes?.includes(size) || (upsellScore?.recommendation === 'Strong' && size >= 75);
+                            return <button key={size} onClick={() => setSelectedSize(size)} className={clsx("px-4 py-2 rounded-lg border text-xs font-bold transition-all relative", selectedSize === size ? "border-primary bg-indigo-50 text-primary" : "border-slate-200 bg-white text-slate-500 hover:border-slate-300", isRecommended && "ring-1 ring-yellow-500/50 border-yellow-500/50")}>{size}" {isRecommended && <Star size={10} className="absolute -top-1.5 -right-1.5 fill-yellow-400 text-yellow-400" />}</button>
                         })}
                     </div>
                 </div>
+            </div>
+        );
+    };
 
-                {/* Upsell Trigger Card (Existing Logic + New Score Context) */}
-                {upsellInfo && (
-                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 rounded-xl border border-indigo-100">
-                        <div className="flex items-start gap-2">
-                            <Info size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <div className="text-xs font-bold text-indigo-700 mb-1">
-                                    {matchedPersona ? `For ${matchedPersona.name}` : "Recommendation"}
-                                </div>
-                                <p className="text-[11px] text-indigo-600 leading-relaxed">
-                                    {upsellInfo.text}
-                                    {upsellScore?.recommendation === 'Strong' && " (Customer is likely open to 75\"+)"}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Cost per Inch & Scaled View */}
-                        <div className="mt-3 flex items-end justify-between">
-                            <div className="text-[10px] text-text-secondary">
-                                Cost Efficiency: <span className="font-bold text-text-primary">${(selectedModel.basePrice / selectedSize).toFixed(1)}/inch</span>
-                            </div>
-
-                            {/* Mini Scaled View */}
-                            <div className="flex items-end gap-1 h-8">
-                                <div className="w-4 bg-gray-300 rounded-t-sm h-3" title="Sofa"></div>
-                                <div
-                                    className="bg-primary rounded-sm transition-all duration-300"
-                                    style={{
-                                        width: `${selectedSize * 0.4}px`,
-                                        height: `${selectedSize * 0.25}px`
-                                    }}
-                                    title={`${selectedSize}" TV`}
-                                ></div>
-                            </div>
-                        </div>
+    const renderCustomerContent = () => {
+        if (!difficulty) return <div className="text-slate-500">Loading Customer Data...</div>;
+        return (
+            <div className="space-y-6">
+                <MotionCard className="!bg-indigo-50 !border-indigo-100 flex items-center justify-between !p-4 group" glass={false}>
+                    <div>
+                        <div className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mb-1">Target Profile</div>
+                        <div className="text-xl font-black text-slate-900 flex items-center gap-3">{matchedPersona ? matchedPersona.name : "Custom Target"} {matchedPersona && <Check className="text-white bg-indigo-500 rounded-full p-0.5" size={20} />}</div>
                     </div>
-                )}
-            </div>
-        </div>
-    );
-
-    const renderCustomerContent = () => (
-        <div className="space-y-6">
-            {/* Persona Match Indicator with Preset Button */}
-            <div className="mb-6 p-4 bg-secondary/5 rounded-xl border border-secondary/20 flex items-center justify-between">
-                <div>
-                    <div className="text-xs text-secondary font-bold uppercase tracking-wider mb-1">Matched Persona</div>
-                    <div className="text-xl font-bold text-text-primary flex items-center gap-2">
-                        {matchedPersona ? matchedPersona.name : "Custom Customer"}
-                        {matchedPersona && <Check className="text-secondary" size={20} />}
-                    </div>
-                </div>
-                <button
-                    onClick={() => setIsPresetModalOpen(true)}
-                    className="px-4 py-2 bg-white border border-secondary/30 text-secondary rounded-lg text-sm font-bold hover:bg-secondary hover:text-white transition-all shadow-sm flex items-center gap-2"
-                >
-                    <List size={16} /> Presets
-                </button>
-            </div>
-
-            {/* Difficulty */}
-            <div className="space-y-2">
-                <label className="text-sm font-bold text-text-secondary">Difficulty Level</label>
-                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                    {DIFFICULTY_LEVELS.map((diff) => (
-                        <button
-                            key={diff.level}
-                            onClick={() => setDifficulty(diff)}
-                            className={clsx(
-                                "flex-shrink-0 px-4 py-2 rounded-lg border transition-all whitespace-nowrap",
-                                difficulty.level === diff.level
-                                    ? "border-red-500 bg-red-50 text-red-700 font-bold"
-                                    : "border-gray-200 hover:border-gray-300 text-text-secondary"
-                            )}
-                        >
-                            Lv.{diff.level}
-                        </button>
-                    ))}
-                </div>
-                <p className="text-xs text-text-light">{difficulty.description}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                {/* Age */}
+                    <button onClick={() => setIsPresetModalOpen(true)} className="btn-secondary text-xs font-bold flex items-center gap-2"><List size={14} /> LOADER</button>
+                </MotionCard>
                 <div className="space-y-2">
-                    <label className="text-sm font-bold text-text-secondary">Age</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Simulation Level</label>
+                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                        {difficulties.map((diff) => (
+                            <button key={diff.level} onClick={() => setDifficulty(diff)} className={clsx("flex-shrink-0 px-4 py-2 rounded-xl border transition-all whitespace-nowrap text-xs font-bold", difficulty.level === diff.level ? "border-red-500 bg-red-50 text-red-600" : "border-slate-200 hover:border-slate-300 text-slate-500 bg-white")}>Lv.{diff.level}</button>
+                        ))}
+                    </div>
+                    <p className="text-xs text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-200">{difficulty.description}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Age Group</label>
+                        <div className="flex flex-wrap gap-2">
+                            {AGES.map((a) => <button key={a} onClick={() => setAge(a)} className={clsx("px-3 py-1.5 rounded-lg border text-xs transition-all", age === a ? "border-indigo-500 bg-indigo-50 text-indigo-700 font-bold" : "border-slate-200 hover:border-slate-300 text-slate-500 bg-white")}>{a}</button>)}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Gender</label>
+                        <div className="flex gap-2">
+                            {GENDERS.map((g) => <button key={g} onClick={() => setGender(g)} className={clsx("flex-1 px-3 py-1.5 rounded-lg border text-xs transition-all", gender === g ? "border-indigo-500 bg-indigo-50 text-indigo-700 font-bold" : "border-slate-200 hover:border-slate-300 text-slate-500 bg-white")}>{g}</button>)}
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Psychographics (Select 2)</label><span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">{selectedTraits.length}/2 Active</span></div>
+                    <div className="flex gap-3 mb-4">
+                        {[0, 1].map(index => (
+                            <div key={index} className={clsx("flex-1 p-3 rounded-2xl border flex flex-col items-center justify-center gap-1 transition-all h-20 text-center relative overflow-hidden", selectedTraits[index] ? "bg-indigo-50 border-indigo-200 text-indigo-700 font-bold" : "bg-slate-50 border-slate-200 text-slate-400 border-dashed")}>
+                                {selectedTraits[index] ? <><CheckCircle2 size={14} className="mb-1 opacity-50" /><span className="text-xs leading-tight">{traitDefinitions[selectedTraits[index]]?.label}</span></> : <span className="text-xs">Empty Slot</span>}
+                            </div>
+                        ))}
+                    </div>
                     <div className="flex flex-wrap gap-2">
-                        {AGES.map((a) => (
-                            <button
-                                key={a}
-                                onClick={() => setAge(a)}
-                                className={clsx(
-                                    "px-3 py-1.5 rounded-lg border text-sm transition-all",
-                                    age === a
-                                        ? "border-secondary bg-secondary/10 text-secondary font-bold"
-                                        : "border-gray-200 hover:border-gray-300 text-text-secondary"
-                                )}
-                            >
-                                {a}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Gender */}
-                <div className="space-y-2">
-                    <label className="text-sm font-bold text-text-secondary">Gender</label>
-                    <div className="flex gap-2">
-                        {GENDERS.map((g) => (
-                            <button
-                                key={g}
-                                onClick={() => setGender(g)}
-                                className={clsx(
-                                    "flex-1 px-3 py-1.5 rounded-lg border text-sm transition-all",
-                                    gender === g
-                                        ? "border-secondary bg-secondary/10 text-secondary font-bold"
-                                        : "border-gray-200 hover:border-gray-300 text-text-secondary"
-                                )}
-                            >
-                                {g}
-                            </button>
+                        {traits.map((trait) => (
+                            <button key={trait.id} onClick={() => toggleTrait(trait.id)} className={clsx("px-3 py-1.5 rounded-full border text-xs transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95", selectedTraits.includes(trait.id) ? "border-secondary bg-secondary text-white shadow-lg shadow-secondary/30" : "border-slate-200 hover:border-slate-300 text-slate-500 bg-white")}>{trait.label}</button>
                         ))}
                     </div>
                 </div>
             </div>
+        );
+    };
 
-            {/* Traits */}
-            <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                    <label className="text-sm font-bold text-text-secondary">Traits (Select 2 + 1 Hidden)</label>
-                    <span className="text-xs text-text-light">{selectedTraits.length}/2 Selected</span>
-                </div>
-
-                {/* Selected Traits Display (Integrated Hidden Trait) */}
-                <div className="flex gap-2 mb-3">
-                    {/* Slot 1 */}
-                    <div className={clsx("flex-1 p-3 rounded-xl border flex items-center justify-center gap-2 transition-all", selectedTraits[0] ? "bg-secondary/10 border-secondary text-secondary font-bold" : "bg-gray-50 border-gray-100 text-gray-400 border-dashed")}>
-                        {selectedTraits[0] ? <>{TRAIT_DEFINITIONS[selectedTraits[0]]?.icon} {selectedTraits[0]}</> : "Select Trait 1"}
-                    </div>
-                    {/* Slot 2 */}
-                    <div className={clsx("flex-1 p-3 rounded-xl border flex items-center justify-center gap-2 transition-all", selectedTraits[1] ? "bg-secondary/10 border-secondary text-secondary font-bold" : "bg-gray-50 border-gray-100 text-gray-400 border-dashed")}>
-                        {selectedTraits[1] ? <>{TRAIT_DEFINITIONS[selectedTraits[1]]?.icon} {selectedTraits[1]}</> : "Select Trait 2"}
-                    </div>
-                    {/* Slot 3 (Hidden) */}
-                    <div className="flex-1 p-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-500 font-bold flex items-center justify-center gap-2 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gray-200/50" style={{ backgroundImage: 'radial-gradient(#ccc 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
-                        <span className="relative z-10 flex items-center gap-2">🔒 ???</span>
-                    </div>
-                </div>
-
-                {/* Trait Selector */}
-                <div className="flex flex-wrap gap-2">
-                    {ALL_TRAITS.map((trait) => (
-                        <button
-                            key={trait}
-                            onClick={() => toggleTrait(trait)}
-                            className={clsx(
-                                "px-3 py-1.5 rounded-full border text-sm transition-all flex items-center gap-1.5",
-                                selectedTraits.includes(trait)
-                                    ? "border-secondary bg-secondary text-white shadow-md"
-                                    : "border-gray-200 hover:border-gray-300 text-text-secondary bg-white"
-                            )}
-                        >
-                            <span>{TRAIT_DEFINITIONS[trait]?.icon}</span>
-                            {trait}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-
-    // --- Mobile Components ---
-
-
-
-
-    // --- Desktop Section Component ---
-
-
-    // Preset Modal
-
+    if (isLoading) return <div className="h-full flex flex-col items-center justify-center text-slate-900 gap-4"><div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" /><div className="text-sm font-bold uppercase tracking-widest text-slate-500 animate-pulse">Initializing Arena...</div></div>;
 
     return (
-        <div className="max-w-7xl mx-auto p-4 lg:p-8 h-full flex flex-col">
-            {/* Header */}
-            <div className="flex justify-between items-end mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold gradient-text">{t.salesLab.title} 🧪</h1>
-                    <p className="text-text-secondary hidden lg:block">{t.salesLab.subtitle}</p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={randomizeConfig}
-                        className="btn-secondary flex items-center gap-2 px-4 py-2"
-                    >
-                        <Shuffle size={18} /> <span className="hidden sm:inline">Randomize Customer</span>
-                    </button>
-                    <button
-                        onClick={onViewHistory}
-                        className="btn-secondary flex items-center gap-2 px-4 py-2"
-                    >
-                        <History size={18} /> <span className="hidden sm:inline">History</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Mobile Dashboard View (< lg) */}
-            <div className="lg:hidden flex-1 flex flex-col gap-4">
-                <MobileSummaryCard
-                    title="Product"
-                    subtitle={`${selectedModel.name} (${selectedSize}")`}
-                    icon={Monitor}
-                    colorClass="bg-blue-500"
-                    onClick={() => setActiveMobileSection('product')}
-                />
-                <MobileSummaryCard
-                    title="Customer"
-                    subtitle={matchedPersona ? matchedPersona.name : "Custom Customer"}
-                    icon={User}
-                    colorClass="bg-purple-500"
-                    onClick={() => setActiveMobileSection('customer')}
-                />
-            </div>
-
-            {/* Desktop Grid View (>= lg) */}
-            <div className="hidden lg:grid grid-cols-12 gap-6 flex-1 overflow-hidden">
-                {/* Left Column: Product Setup */}
-                <div className="col-span-4 h-full">
-                    <Section
-                        title="Product Setup"
-                        icon={Monitor}
-                        headerAction={
-                            <button onClick={(e) => { e.stopPropagation(); randomizeProduct(); }} className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-md flex items-center gap-1 text-text-secondary transition-colors">
-                                <Shuffle size={12} /> Random
-                            </button>
-                        }
-                    >
-                        {renderProductContent()}
-                    </Section>
+        <div className="h-full flex flex-col text-slate-900 relative overflow-hidden font-sans">
+            <div className="max-w-7xl mx-auto w-full p-3 md:p-6 lg:p-8 h-full flex flex-col relative z-10">
+                <div className="flex justify-between items-end mb-4 md:mb-8 border-b border-slate-200 pb-4 md:pb-6">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-primary text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> Mission Setup
+                            </div>
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                            {t.salesLab.title}
+                        </h1>
+                        <p className="text-xs md:text-sm text-slate-500 mt-1">Configure your roleplay scenario.</p>
+                    </div>
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <button
+                            onClick={toggleDemoMode}
+                            className={clsx(
+                                "flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg transition-all border",
+                                isDemoMode
+                                    ? "bg-amber-50 border-amber-200 text-amber-600"
+                                    : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50"
+                            )}
+                        >
+                            <div className={clsx(
+                                "w-1.5 h-1.5 md:w-2 md:h-2 rounded-full",
+                                isDemoMode ? "bg-amber-500 animate-pulse" : "bg-slate-300"
+                            )} />
+                            <span className="text-[10px] md:text-xs font-bold">
+                                {isDemoMode ? "DEMO" : "API"}
+                            </span>
+                        </button>
+                        <div className="h-6 w-px bg-slate-200 mx-1"></div>
+                        <button onClick={randomizeConfig} className="btn-secondary text-xs px-2 md:px-3"><Shuffle size={14} /> <span className="hidden sm:inline">Randomize</span></button>
+                        <button onClick={onViewHistory} className="btn-secondary text-xs px-2 md:px-3"><History size={14} /> <span className="hidden sm:inline">Records</span></button>
+                    </div>
                 </div>
 
-                {/* Right Column: Customer Profile */}
-                <div className="col-span-8 h-full">
-                    <Section title="Customer Profile" icon={User}>
-                        {renderCustomerContent()}
-                    </Section>
+                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 flex-1 overflow-visible lg:overflow-hidden pb-24 md:pb-0">
+                    <div className="lg:col-span-4 h-auto lg:h-full flex flex-col">
+                        <Section title="Product" icon={Monitor} headerAction={<button onClick={(e) => { e.stopPropagation(); randomizeProduct(); }} className="text-[10px] uppercase font-bold bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md flex items-center gap-1 text-slate-500 transition-colors"><Shuffle size={10} /> Auto</button>}>
+                            {renderProductContent()}
+                        </Section>
+                    </div>
+                    <div className="lg:col-span-8 h-auto lg:h-full flex flex-col">
+                        <Section title="Target Profile" icon={Target}>
+                            {renderCustomerContent()}
+                        </Section>
+                    </div>
                 </div>
+
+                <div className="fixed bottom-20 md:bottom-8 left-4 right-4 md:left-auto md:right-8 lg:static pt-4 lg:pt-6 z-20 flex gap-4 bg-white/80 backdrop-blur-md lg:bg-transparent p-4 lg:p-0 border-t border-slate-200 lg:border-none rounded-t-2xl lg:rounded-none shadow-[0_-5px_20px_rgba(0,0,0,0.05)] lg:shadow-none">
+                    {hasSavedSession && (
+                        <button onClick={() => { const saved = JSON.parse(localStorage.getItem('salesLab_savedSession')); if (saved) onStart(saved.config, saved); }} className="flex-1 py-4 text-sm md:text-lg font-bold flex items-center justify-center gap-2 md:gap-3 rounded-xl md:rounded-2xl border border-primary/30 bg-indigo-50 text-primary hover:bg-indigo-100 hover:scale-[1.01] transition-all"><History size={20} /> <span className="hidden sm:inline">Resume</span></button>
+                    )}
+                    <PulseButton onClick={handleStart} className="flex-[2] py-4 md:py-5 text-base md:text-xl font-bold tracking-wide flex items-center justify-center gap-3 !rounded-xl md:!rounded-2xl !bg-primary shadow-lg shadow-primary/30">
+                        <Play size={20} fill="currentColor" /> START SIMULATION
+                    </PulseButton>
+                </div>
+
+                {isPresetModalOpen && <PresetModal onClose={() => setIsPresetModalOpen(false)} onSelect={handlePresetSelect} personas={personas} />}
             </div>
-
-            {/* Mobile Config Modals */}
-            <ConfigModal
-                isOpen={activeMobileSection === 'product'}
-                onClose={() => setActiveMobileSection(null)}
-                title="Configure Product"
-            >
-                {renderProductContent()}
-            </ConfigModal>
-
-            <ConfigModal
-                isOpen={activeMobileSection === 'customer'}
-                onClose={() => setActiveMobileSection(null)}
-                title="Configure Customer"
-            >
-                {renderCustomerContent()}
-            </ConfigModal>
-
-            {/* Floating Start Button (Always Visible) */}
-            <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-100 bg-white lg:bg-transparent lg:static z-10 flex gap-3">
-                {hasSavedSession && (
-                    <button
-                        onClick={() => {
-                            const saved = JSON.parse(localStorage.getItem('salesLab_savedSession'));
-                            if (saved) {
-                                onStart(saved.config, saved); // Pass config as first arg, full saved state as second
-                            }
-                        }}
-                        className="flex-1 btn-secondary py-4 text-xl shadow-sm flex items-center justify-center gap-3 rounded-2xl border-2 border-primary/20 text-primary hover:bg-primary/5"
-                    >
-                        <History size={28} /> Resume Last Session
-                    </button>
-                )}
-                <button
-                    onClick={handleStart}
-                    className="flex-[2] btn-primary py-4 text-xl shadow-glow flex items-center justify-center gap-3 rounded-2xl"
-                >
-                    <Play size={28} fill="currentColor" /> Start Simulation
-                </button>
-            </div>
-
-            {isPresetModalOpen && (
-                <PresetModal
-                    onClose={() => setIsPresetModalOpen(false)}
-                    onSelect={handlePresetSelect}
-                />
-            )}
         </div>
     );
 }
 
-const MobileSummaryCard = ({ title, subtitle, icon: Icon, onClick, colorClass }) => ( // eslint-disable-line no-unused-vars
-    <button
-        onClick={onClick}
-        className="w-full bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-all active:scale-[0.98]"
-    >
-        <div className="flex items-center gap-4">
-            <div className={clsx("p-3 rounded-xl", colorClass)}>
-                <Icon size={24} className="text-white" />
+const Section = ({ title, icon: Icon, children, headerAction }) => (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden h-full flex flex-col shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="w-full p-4 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-3 font-bold text-slate-800 text-sm md:text-base">
+                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-primary border border-slate-200 shadow-sm"><Icon size={16} /></div>
+                {title}
             </div>
-            <div className="text-left">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">{title}</div>
-                <div className="text-lg font-bold text-text-primary">{subtitle}</div>
-            </div>
+            <div className="flex items-center gap-2">{headerAction}</div>
         </div>
-        <Settings size={20} className="text-gray-300" />
-    </button>
-);
-
-const ConfigModal = ({ isOpen, onClose, title, children }) => {
-    if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in slide-in-from-bottom-full duration-300">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white/80 backdrop-blur-sm">
-                <button onClick={onClose} className="p-2 -ml-2 hover:bg-gray-100 rounded-full">
-                    <ArrowLeft size={24} className="text-text-primary" />
-                </button>
-                <h2 className="text-lg font-bold text-text-primary">{title}</h2>
-                <div className="w-10"></div> {/* Spacer for centering */}
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-20">
-                {children}
-            </div>
-            <div className="p-4 border-t border-gray-100 bg-white">
-                <button onClick={onClose} className="w-full btn-primary py-3 rounded-xl">
-                    Done
-                </button>
-            </div>
-        </div>
-    );
-};
-
-const Section = ({ title, icon: Icon, children, headerAction }) => ( // eslint-disable-line no-unused-vars
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full flex flex-col">
-        <div className="w-full p-4 flex items-center justify-between bg-white border-b border-gray-50">
-            <div className="flex items-center gap-2 font-bold text-text-primary">
-                <Icon className="text-primary" size={20} /> {title}
-            </div>
-            <div className="flex items-center gap-2">
-                {headerAction}
-            </div>
-        </div>
-        <div className="flex-1 overflow-hidden">
-            <div className="p-4 h-full overflow-y-auto custom-scrollbar">
-                {children}
-            </div>
-        </div>
+        <div className="flex-1 overflow-hidden relative"><div className="p-4 h-full overflow-y-auto custom-scrollbar">{children}</div></div>
     </div>
 );
 
-const PresetModal = ({ onClose, onSelect }) => (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white z-10">
-                <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                    <User className="text-primary" /> Select Persona Preset
-                </h2>
-                <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-text-secondary"
-                >
-                    <X size={20} />
-                </button>
+const PresetModal = ({ onClose, onSelect, personas }) => (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white z-10">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3"><Database className="text-primary" /> Load Target Preset</h2>
+                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-900"><X size={20} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {PERSONAS.map((persona) => (
-                    <button
-                        key={persona.id}
-                        onClick={() => onSelect(persona)}
-                        className="p-3 rounded-xl border border-gray-200 bg-white hover:border-primary hover:shadow-md transition-all text-left"
-                    >
-                        <div className="font-bold text-text-primary">{persona.name}</div>
-                        <div className="text-xs text-text-secondary mb-2">{persona.description}</div>
-                        <div className="flex flex-wrap gap-1">
-                            {persona.surface_traits.map(t => (
-                                <span key={t} className="text-[10px] px-1.5 py-0.5 bg-gray-100 rounded text-text-secondary">
-                                    {TRAIT_DEFINITIONS[t]?.icon} {t}
-                                </span>
-                            ))}
-                        </div>
+            <div className="flex-1 overflow-y-auto p-5 bg-slate-50 grid grid-cols-1 sm:grid-cols-2 gap-3 custom-scrollbar">
+                {personas.map((persona) => (
+                    <button key={persona.id} onClick={() => onSelect(persona)} className="p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/50 hover:shadow-md transition-all text-left group">
+                        <div className="flex justify-between items-start mb-1"><div className="font-bold text-slate-900 group-hover:text-primary transition-colors">{persona.name}</div><div className="text-[10px] font-bold text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded">{persona.ageGroup}</div></div>
+                        <div className="text-xs text-slate-500 mb-3 leading-relaxed">{persona.shortDescription}</div>
+                        <div className="flex flex-wrap gap-1">{persona.mainTraits.map(t => <span key={t} className="text-[10px] px-2 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">{t}</span>)}</div>
                     </button>
                 ))}
             </div>

@@ -1,6 +1,13 @@
-import React from 'react';
 import UserManagement from './UserManagement';
-import ContentManagement from './ContentManagement';
+import ScenarioManagement from './ScenarioManagement';
+import SystemSettings from './SystemSettings';
+import ProductCatalogManager from './ProductCatalogManager';
+import CustomerManager from './CustomerManager';
+import GamificationManager from './GamificationManager';
+import ContentManager from './ContentManager';
+import QuizBuilder from './QuizBuilder';
+import PerformanceMonitor from './PerformanceMonitor';
+import InsightsConsole from './InsightsConsole';
 
 const PlaceholderPage = ({ title }) => (
     <div className="flex flex-col items-center justify-center h-[60vh] text-center">
@@ -12,9 +19,15 @@ const PlaceholderPage = ({ title }) => (
     </div>
 );
 
-export { UserManagement, ContentManagement };
-export const SalesLabManagement = () => <PlaceholderPage title="Sales Lab Management" />;
-export const AIQuality = () => <PlaceholderPage title="AI Quality & Models" />;
-export const Analytics = () => <PlaceholderPage title="KPI & Analytics" />;
+export { UserManagement };
+export const SalesLabManagement = ScenarioManagement;
+export const Settings = SystemSettings;
 export const Campaigns = () => <PlaceholderPage title="Notifications & Campaigns" />;
-export const Settings = () => <PlaceholderPage title="System Settings" />;
+
+// New V2 Spec Placeholders
+export { ProductCatalogManager, CustomerManager };
+export const GamificationManagement = GamificationManager;
+export const ContentManagement = ContentManager;
+export const QuizModification = QuizBuilder;
+export const AIQuality = PerformanceMonitor;
+export const Analytics = InsightsConsole;

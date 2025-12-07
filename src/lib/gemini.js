@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { operatorApi } from '../services/operatorApi';
+import { useAppStore } from '../store/appStore';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -56,10 +58,26 @@ const TRAINER_INSTRUCTION = `
 
 let chatSession = null;
 
+// --- MOCK DATA FOR DEMO MODE ---
+const MOCK_SCRIPTS = {
+    start: (name) => `안녕하세요! 매장 디스플레이를 보고 들어왔는데, 새로 나온 TV 모델들 좀 볼 수 있을까요? 제가 요즘 넷플릭스를 많이 봐서 화질 좋은 걸로 찾고 있어요.`,
+    responses: [
+        `음, 넷플릭스를 주로 보긴 하는데, 가끔 주말에 축구 경기도 봐요. 그래서 잔상 없이 깔끔하게 나오는 게 중요할 것 같아요. 어떤 모델이 좋을까요?`,
+        `OLED가 화질이 좋다는 건 들어봤는데, 가격이 좀 비싸지 않나요? QNED랑 비교하면 어떤 점이 더 나은지 궁금해요.`,
+        `아, 그렇군요! OLED가 확실히 검은색 표현이 좋아서 영화 볼 때 몰입감이 좋겠네요. 번인 현상은 요즘 어떤가요? 걱정 안 해도 될까요?`,
+        `설명 들어보니 안심이 되네요. 5년 패널 보증까지 된다니 믿음이 가요. 사이즈는 65인치 정도로 생각하는데, 지금 프로모션 같은 게 있나요?`,
+        `가격 조건도 괜찮네요. 사운드바도 같이 하면 할인된다고요? 그럼 같이 견적 한번 뽑아주세요. 바로 결정할게요!`
+    ],
+    objection: `음... 가격이 생각보다 좀 나가네요. 인터넷 최저가랑 비교해도 경쟁력이 있는 건가요?`,
+    closing: `네, 알겠습니다. 설명도 잘 해주시고 혜택도 좋아서 여기서 할게요. 배송은 언제쯤 받을 수 있을까요?`
+};
 
 export const aiService = {
     // Initialize or reset chat session
     initChat: async (systemInstruction = TRAINER_INSTRUCTION) => {
+        const isDemo = useAppStore.getState().isDemoMode;
+        if (isDemo) return { demo: true };
+
         console.log("Initializing Chat with model: gemini-2.0-flash");
         const genAI = getGenAI();
         if (!genAI) return null;
@@ -81,6 +99,14 @@ export const aiService = {
 
     // Send message to Gemini
     startRoleplay: async (config, language = 'en') => {
+        const isDemo = useAppStore.getState().isDemoMode;
+
+        if (isDemo) {
+            console.log("DEMO MODE: Starting Roleplay");
+            await new Promise(resolve => setTimeout(resolve, 800)); // Simulate delay
+            return MOCK_SCRIPTS.start(config.customer.name);
+        }
+
         try {
             const genAI = getGenAI();
             if (!genAI) throw new Error("API Key missing");
@@ -104,6 +130,46 @@ export const aiService = {
             const tone = persona.default_tone || "Neutral";
             const description = persona.description || `A customer interested in buying a TV. Age: ${customer.age}, Gender: ${customer.gender}.`;
 
+            // --- FETCH OPERATOR LOGIC (The "Brain" Connection) ---
+            const [rulesRes, stagesRes] = await Promise.all([
+                operatorApi.getUpsellRules(),
+                operatorApi.getStages()
+            ]);
+
+            const allRules = rulesRes.success ? rulesRes.data.rules : [];
+            const stages = stagesRes.success ? stagesRes.data.stages : [];
+
+            // Filter Applicable Rules based on Context
+            const relevantRules = allRules.filter(rule => {
+                // Check Customer Match (Persona or Traits)
+                const customerMatch = !rule.customer || (
+                    (!rule.customer.personaId || rule.customer.personaId === customer.personaId) &&
+                    (!rule.customer.includeTraits || rule.customer.includeTraits.some(t => {
+                        const tId = typeof t === 'string' ? t : t.id;
+                        // check surface traits
+                        return surfaceTraits.includes(tId) || JSON.stringify(hiddenTraits).includes(tId);
+                    }))
+                );
+                // Check Product Match
+                const productMatch = !rule.product || (
+                    (!rule.product.type || rule.product.type === product.type)
+                );
+                return customerMatch && productMatch;
+            });
+
+            // Format Rules for Prompt
+            const ruleInstructions = relevantRules.map(r => {
+                const triggers = r.conditions?.map(c => c.description).join(' AND ') || "Salesperson mentions relevant feature";
+                const actions = r.actions?.map(a => `Action: ${a.type} (${JSON.stringify(a.params)})`).join(', ');
+                const messages = r.messages?.map(m => `Response Line: "${m.template}" (Tone: ${m.tone})`).join('\n');
+                return `- TRIGGER: ${triggers}\n  REACTION: ${actions}\n  ${messages}`;
+            }).join('\n\n');
+
+            const stageInstructions = stages.map((s, idx) => {
+                return `${idx + 1}. ${s.label}: ${s.description}`;
+            }).join('\n');
+
+
             const prompt = `
             You are a professional actor playing the role of a customer in a sales roleplay scenario.
             
@@ -124,7 +190,14 @@ export const aiService = {
             
             **Difficulty Level: ${difficulty.label} (Level ${difficulty.level})**
             - Description: ${difficulty.description}
+
+            **Logic Engine (Absolute Rules):**
+            You MUST conditionaly rules if the situation arises:
+            ${ruleInstructions}
             
+            **Sales Process Stages (Expected Flow):**
+            ${stageInstructions}
+
             **Your Instructions:**
             1.  **Language:** Speak ONLY in ${targetLang}.
             2.  **Format:** Write ONLY the dialogue. DO NOT use descriptive text like *smiles* or (pauses). Just the spoken words.
@@ -135,19 +208,7 @@ export const aiService = {
             **REALISTIC CONVERSATION FLOW - Very Important:**
             - START with just a greeting or vague reason. DO NOT reveal all your needs upfront.
             - Only reveal deeper concerns and hidden traits when the salesperson asks good questions.
-            - For example: 
-              * At greeting stage: Just say "I'm looking for a TV" or "browsing"
-              * When asked about use case: "Mostly watch movies and shows"
-              * When asked about budget: Then mention price sensitivity
-              * When asked about gaming/sports/movies: THEN reveal that specific interest
-              * When product is suggested: THEN reveal concerns/objections if relevant
-            
-            **Conversation Rules:**
-            - Be natural. Real customers don't dump all their needs in one sentence.
-            - Reveal information progressively based on the salesperson's questions.
-            - If the salesperson asks poor/generic questions (not asking about your needs), stay vague.
-            - If the salesperson asks smart questions, warm up and share more details.
-            - Show objections/skepticism ONLY when relevant to the salesperson's proposal.
+            - Follow the "Logic Engine" rules above strictly when triggers occur.
             - For Level 4-5: Be skeptical and ask for justification. For Level 1-2: Be friendly and quick to warm up.
 
             **IMPORTANT:** You are NOT the AI Trainer. You are the CUSTOMER. Just roleplay naturally like a real store customer.
@@ -164,11 +225,32 @@ export const aiService = {
 
         } catch (error) {
             console.error("Error starting roleplay:", error);
+            if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+                return "⚠️ API Quota Exceeded. Please try again later or wait a moment.";
+            }
             throw error;
         }
     },
 
     analyzeInteraction: async (lastUserMessage, conversationHistory, config, language = 'en') => {
+        const isDemo = useAppStore.getState().isDemoMode;
+
+        if (isDemo) {
+            // Simple mock analysis logic based on turn count
+            const turn = conversationHistory.length;
+            let nextStep = 'greeting';
+            if (turn > 2) nextStep = 'needs';
+            if (turn > 6) nextStep = 'proposal';
+            if (turn > 10) nextStep = 'closing';
+
+            return {
+                nextStep,
+                discoveredTrait: turn === 4 ? config.customer.traits[0]?.id : null,
+                objectionDetected: false,
+                objectionHint: null
+            };
+        }
+
         const genAI = getGenAI();
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash", generationConfig: { responseMimeType: "application/json" } });
 
@@ -222,14 +304,29 @@ export const aiService = {
             return JSON.parse(response.text());
         } catch (error) {
             console.error("Analysis failed:", error);
+            if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+                return { nextStep: null, discoveredTrait: null, objectionDetected: false, objectionHint: null, error: 'QUOTA_EXCEEDED' };
+            }
             return { nextStep: null, discoveredTrait: null, objectionDetected: false, objectionHint: null };
         }
     },
 
     sendMessage: async (message, language = 'ko', isRoleplay = false, conversationHistory = null) => {
-        if (!API_KEY) {
+        const isDemo = useAppStore.getState().isDemoMode;
+
+        if (!API_KEY && !isDemo) {
             console.error("Gemini API Key is missing!");
             return { text: "시스템 오류: API 키가 설정되지 않았습니다.", speech: "API 키 오류가 발생했습니다." };
+        }
+
+        if (isDemo) {
+            // Mock Response Logic
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const turn = conversationHistory ? conversationHistory.length : 0;
+            const mockIndex = Math.floor(turn / 2) % MOCK_SCRIPTS.responses.length;
+            const mockResponse = MOCK_SCRIPTS.responses[mockIndex] || MOCK_SCRIPTS.closing;
+
+            return { text: mockResponse, speech: mockResponse };
         }
 
         if (!chatSession) {
@@ -239,7 +336,7 @@ export const aiService = {
 
         let langInstruction = "";
         let roleplayInstruction = "";
-        
+
         if (!isRoleplay) {
             switch (language) {
                 case 'en':
@@ -273,7 +370,7 @@ export const aiService = {
             } else {
                 // Split by ---SPEECH--- separator
                 const parts = fullText.split('---SPEECH---');
-                
+
                 if (parts.length > 1) {
                     // Both display and speech text exist
                     const displayText = parts[0].trim();
@@ -289,11 +386,33 @@ export const aiService = {
             }
         } catch (error) {
             console.error("Gemini API Error Details:", error);
+            if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+                return { text: "⚠️ AI 사용량이 초과되었습니다. 잠시 후 다시 시도해주세요. (429 Quota Exceeded)", speech: "사용량이 초과되었습니다. 잠시 기다려주세요.", error: 'QUOTA_EXCEEDED' };
+            }
             return { text: "오류가 발생했습니다.", speech: "오류가 발생했습니다." };
         }
     },
 
     sendMessageStream: async (message, language = 'ko', isRoleplay = false, onChunk, conversationHistory = null) => {
+        const isDemo = useAppStore.getState().isDemoMode;
+
+        if (isDemo) {
+            // Mock Stream Logic
+            await new Promise(resolve => setTimeout(resolve, 800));
+            const turn = conversationHistory ? conversationHistory.length : 0;
+            const mockIndex = Math.floor(turn / 2) % MOCK_SCRIPTS.responses.length;
+            const mockResponse = MOCK_SCRIPTS.responses[mockIndex] || MOCK_SCRIPTS.closing;
+
+            // Simulate streaming
+            const chars = mockResponse.split('');
+            for (let i = 0; i < chars.length; i += 3) {
+                const chunk = chars.slice(i, i + 3).join('');
+                onChunk(chunk);
+                await new Promise(r => setTimeout(r, 20));
+            }
+            return { text: mockResponse, speech: mockResponse };
+        }
+
         if (!API_KEY) {
             console.error("Gemini API Key is missing!");
             onChunk("시스템 오류: API 키가 설정되지 않았습니다.");
@@ -347,7 +466,7 @@ export const aiService = {
             } else {
                 // Split by ---SPEECH--- separator
                 const parts = fullText.split('---SPEECH---');
-                
+
                 if (parts.length > 1) {
                     // Both display and speech text exist
                     const displayText = parts[0].trim();
@@ -363,11 +482,27 @@ export const aiService = {
             }
         } catch (error) {
             console.error("Gemini Stream Error:", error);
+            if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+                const msg = "⚠️ AI 사용량이 초과되었습니다. 잠시 후 다시 시도해주세요.";
+                onChunk(msg);
+                return { text: msg, speech: "", error: 'QUOTA_EXCEEDED' };
+            }
             return { text: "오류가 발생했습니다.", speech: "오류가 발생했습니다." };
         }
     },
 
     generateDailyMission: async (userHistory, language = 'ko') => {
+        const isDemo = useAppStore.getState().isDemoMode;
+        if (isDemo) {
+            return {
+                title: "[Demo] Daily Warmup",
+                description: "Complete 1 Roleplay Session (Demo Mode)",
+                target: 1,
+                reward: "Demo Badge",
+                type: "roleplay"
+            };
+        }
+
         const genAI = getGenAI();
         if (!genAI) return null;
 
@@ -395,6 +530,9 @@ export const aiService = {
             return JSON.parse(response.text());
         } catch (error) {
             console.error("Daily Mission Error:", error);
+            if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+                return { error: 'QUOTA_EXCEEDED', title: "Quota Exceeded", description: "Please wait a moment." };
+            }
             return {
                 title: "Daily Warmup",
                 description: "Complete 1 Roleplay Session",
@@ -407,13 +545,37 @@ export const aiService = {
 
     // Generate Feedback Report based on chat history
     generateFeedback: async (history, language = 'ko') => {
+        const isDemo = useAppStore.getState().isDemoMode;
+        if (isDemo) {
+            return {
+                totalScore: 92,
+                rank: "Top 10%",
+                summary: "[Demo] Excellent performance! You followed the sales process perfectly and handled customer inquiries with great product knowledge.",
+                pros: ["Clear product explanation", "Good empathy", "Proper use of demo mode script"],
+                improvements: ["Try asking more open-ended questions next time"],
+                practiceSentence: "How does this feature match your daily usage?",
+                recommendedMission: {
+                    title: "Advanced Negotiation (Demo)",
+                    xp: 100,
+                    type: "Roleplay"
+                },
+                scores: [
+                    { "subject": "Product Knowledge", "A": 95 },
+                    { "subject": "Objection Handling", "A": 88 },
+                    { "subject": "Empathy", "A": 92 },
+                    { "subject": "Policy", "A": 90 },
+                    { "subject": "Conversation", "A": 95 }
+                ]
+            };
+        }
+
         const genAI = getGenAI();
         if (!genAI) return null;
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         // Convert message objects to readable format
-        const conversationText = Array.isArray(history) 
+        const conversationText = Array.isArray(history)
             ? history.map(m => `${m.role === 'user' ? 'Salesperson' : 'Customer'}: ${m.text}`).join('\n')
             : '';
 
@@ -599,7 +761,7 @@ export const aiService = {
             // Clean up markdown if present
             const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
             const parsed = JSON.parse(jsonStr);
-            
+
             // Ensure scores are properly populated
             if (!parsed.scores || parsed.scores.length === 0) {
                 parsed.scores = [
@@ -610,12 +772,15 @@ export const aiService = {
                     { "subject": "Conversation", "A": Math.floor(parsed.totalScore * 0.9 + Math.random() * 10) }
                 ];
             }
-            
+
             console.log("Feedback generated successfully:", parsed);
             return parsed;
         } catch (error) {
             console.error("Feedback Generation Error:", error);
             // Return a default feedback structure if parsing fails
+            if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+                return { error: 'QUOTA_EXCEEDED', summary: "⚠️ AI 사용량 초과로 분석할 수 없습니다." };
+            }
             return {
                 totalScore: 60,
                 rank: "Top 50%",
@@ -641,6 +806,29 @@ export const aiService = {
 
     // Generate Course and Quiz from Topic/Content
     generateCourse: async (topic, fileContent = "", language = 'ko') => {
+        const isDemo = useAppStore.getState().isDemoMode;
+        if (isDemo) {
+            return {
+                course: {
+                    id: "demo_course",
+                    title: "Demo Course: OLED TVs",
+                    category: "Product",
+                    level: "Beginner",
+                    duration: "5 min",
+                    modules: [
+                        { id: "m1", title: "What is OLED?", content: [{ type: "text", heading: "Definition", body: "Organic Light Emitting Diode" }] },
+                        { id: "m2", title: "Benefits", content: [{ type: "list", heading: "Key Pros", items: ["Perfect Black", "Infinite Contrast"] }] }
+                    ]
+                },
+                quiz: [
+                    { id: 1, question: { en: "What does OLED stand for?", ko: "OLED의 약자는?" }, options: [{ id: "a", text: { en: "Organic Light Emitting Diode", ko: "Organic Light Emitting Diode" }, correct: true }, { id: "b", text: { en: "Old Light", ko: "오래된 빛" }, correct: false }] }
+                ],
+                faq: [
+                    { category: "Product", question: { en: "Is OLED bright?", ko: "OLED는 밝나요?" }, answer: { en: "Yes, modern OLEDs are very bright.", ko: "네, 최신 OLED는 매우 밝습니다." } }
+                ]
+            };
+        }
+
         const genAI = getGenAI();
         if (!genAI) return null;
 
@@ -701,6 +889,9 @@ export const aiService = {
             return JSON.parse(jsonStr);
         } catch (error) {
             console.error("Course Generation Error:", error);
+            if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+                return { error: 'QUOTA_EXCEEDED' };
+            }
             return null;
         }
     }

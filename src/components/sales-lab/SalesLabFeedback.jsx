@@ -81,46 +81,46 @@ function SalesLabFeedbackContent({ result, onRestart, onBack, onViewHistory }) {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-blue-50/30 p-3 md:p-6 space-y-6 md:space-y-8 h-full overflow-y-auto">
+        <div className="h-full bg-slate-50 p-4 md:p-8 overflow-y-auto custom-scrollbar">
             {/* Header */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center space-y-2"
+                className="text-center space-y-2 mb-8"
             >
-                <h1 className="text-3xl md:text-4xl font-bold text-text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
+                <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
                     {tFeedback.title}
                 </h1>
-                <p className="text-sm md:text-base text-text-secondary">{tFeedback.subtitle}</p>
+                <p className="text-slate-500">{tFeedback.subtitle}</p>
             </motion.div>
 
-            <div className="max-w-5xl mx-auto space-y-6 md:space-y-8">
-                {/* Score Card - Full Width on Mobile */}
+            <div className="max-w-4xl mx-auto space-y-6">
+                {/* Score Card */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="glass-card p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-lg border border-white/20 text-center"
+                    className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center"
                 >
-                    <div className="flex flex-col items-center gap-4 md:gap-6">
+                    <div className="flex flex-col items-center gap-6">
                         <div>
-                            <div className="text-6xl md:text-8xl font-black gradient-text">{score}</div>
-                            <div className="text-xs md:text-sm text-gray-400 mt-1">/ 100</div>
+                            <div className="text-6xl md:text-8xl font-black text-slate-900 tracking-tighter">{score}</div>
+                            <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">Total Score</div>
                         </div>
-                        <div className="w-full h-3 md:h-4 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                        <div className="w-full max-w-lg h-4 bg-slate-100 rounded-full overflow-hidden">
                             <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${score}%` }}
                                 transition={{ duration: 1.5, delay: 0.2 }}
                                 className={clsx(
                                     "h-full rounded-full transition-all",
-                                    score >= 80 ? "bg-gradient-to-r from-green-400 to-green-600" :
-                                        score >= 60 ? "bg-gradient-to-r from-yellow-400 to-yellow-600" :
-                                            "bg-gradient-to-r from-red-400 to-red-600"
+                                    score >= 80 ? "bg-emerald-500" :
+                                        score >= 60 ? "bg-amber-500" :
+                                            "bg-red-500"
                                 )}
                             />
                         </div>
-                        <p className="text-xs md:text-sm font-semibold text-text-secondary">
+                        <p className="font-bold text-slate-600">
                             {score >= 85 ? "Excellent! 🎯" : score >= 70 ? "Good work! 👏" : score >= 50 ? "Keep improving! 💪" : "More practice needed! 📚"}
                         </p>
                     </div>
@@ -131,51 +131,51 @@ function SalesLabFeedbackContent({ result, onRestart, onBack, onViewHistory }) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 md:p-8 rounded-2xl md:rounded-3xl border border-blue-100 shadow-lg"
+                    className="bg-indigo-50/50 p-6 md:p-8 rounded-2xl border border-indigo-100"
                 >
-                    <h3 className="font-bold text-lg md:text-xl text-text-primary mb-3 md:mb-4 flex items-center gap-2 md:gap-3">
-                        <Award className="text-primary flex-shrink-0" size={24} />
+                    <h3 className="font-bold text-lg text-indigo-900 mb-4 flex items-center gap-3">
+                        <div className="p-2 bg-white rounded-lg border border-indigo-100 text-indigo-600"><Award size={20} /></div>
                         {tFeedback.aiFeedback}
                     </h3>
-                    <p className="text-sm md:text-base text-text-secondary leading-relaxed">{summary}</p>
+                    <p className="text-slate-700 leading-relaxed">{summary}</p>
                 </motion.div>
 
-                {/* Skills Breakdown - Responsive Grid */}
+                {/* Skills Breakdown */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="glass-card p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-lg border border-white/20"
+                    className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200"
                 >
-                    <h3 className="font-bold text-lg md:text-xl text-text-primary mb-6 md:mb-8">Skill Analysis</h3>
-                    <div className="space-y-4 md:space-y-5">
+                    <h3 className="font-bold text-lg text-slate-900 mb-6">Skill Analysis</h3>
+                    <div className="space-y-5">
                         {chartData.map((item, idx) => (
-                            <motion.div 
-                                key={idx} 
+                            <motion.div
+                                key={idx}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.3 + idx * 0.1 }}
                                 className="space-y-2"
                             >
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm md:text-base font-bold text-text-primary">{item.subject}</span>
+                                    <span className="text-sm font-bold text-slate-700">{item.subject}</span>
                                     <span className={clsx(
-                                        "text-sm md:text-base font-bold",
-                                        item.A >= 80 ? "text-green-600" : item.A >= 60 ? "text-yellow-600" : "text-red-600"
+                                        "text-sm font-bold",
+                                        item.A >= 80 ? "text-emerald-600" : item.A >= 60 ? "text-amber-600" : "text-red-600"
                                     )}>
                                         {item.A}%
                                     </span>
                                 </div>
-                                <div className="h-3 md:h-4 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                                <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${item.A}%` }}
                                         transition={{ duration: 1, delay: 0.3 + idx * 0.1 }}
                                         className={clsx(
                                             "h-full rounded-full transition-all",
-                                            item.A >= 80 ? "bg-gradient-to-r from-green-400 to-green-600" :
-                                                item.A >= 60 ? "bg-gradient-to-r from-yellow-400 to-yellow-600" :
-                                                    "bg-gradient-to-r from-red-400 to-red-600"
+                                            item.A >= 80 ? "bg-emerald-500" :
+                                                item.A >= 60 ? "bg-amber-500" :
+                                                    "bg-red-500"
                                         )}
                                     />
                                 </div>
@@ -184,30 +184,24 @@ function SalesLabFeedbackContent({ result, onRestart, onBack, onViewHistory }) {
                     </div>
                 </motion.div>
 
-                {/* Strengths & Improvements - Responsive Grid */}
+                {/* Strengths & Improvements */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     {/* Pros */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="bg-gradient-to-br from-green-50 to-green-50/50 p-6 md:p-8 rounded-2xl md:rounded-3xl border border-green-100 shadow-lg hover:shadow-xl transition-shadow"
+                        className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm"
                     >
-                        <h3 className="font-bold text-base md:text-lg text-green-800 mb-4 md:mb-5 flex items-center gap-2 md:gap-3">
-                            <CheckCircle2 size={20} className="md:w-6 md:h-6 flex-shrink-0" /> {tFeedback.pros}
+                        <h3 className="font-bold text-emerald-700 mb-4 flex items-center gap-2">
+                            <CheckCircle2 size={20} /> {tFeedback.pros}
                         </h3>
-                        <ul className="space-y-3 md:space-y-4">
+                        <ul className="space-y-3">
                             {pros.map((item, idx) => (
-                                <motion.li 
-                                    key={idx} 
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.4 + idx * 0.05 }}
-                                    className="flex items-start gap-2 md:gap-3 text-green-700 text-sm md:text-base leading-relaxed"
-                                >
-                                    <span className="w-2 h-2 md:w-2.5 md:h-2.5 bg-green-500 rounded-full flex-shrink-0 mt-1.5 md:mt-2" />
+                                <li key={idx} className="flex items-start gap-3 text-slate-600 text-sm leading-relaxed">
+                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0 mt-2" />
                                     <span>{item}</span>
-                                </motion.li>
+                                </li>
                             ))}
                         </ul>
                     </motion.div>
@@ -217,23 +211,17 @@ function SalesLabFeedbackContent({ result, onRestart, onBack, onViewHistory }) {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.45 }}
-                        className="bg-gradient-to-br from-orange-50 to-orange-50/50 p-6 md:p-8 rounded-2xl md:rounded-3xl border border-orange-100 shadow-lg hover:shadow-xl transition-shadow"
+                        className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm"
                     >
-                        <h3 className="font-bold text-base md:text-lg text-orange-800 mb-4 md:mb-5 flex items-center gap-2 md:gap-3">
-                            <XCircle size={20} className="md:w-6 md:h-6 flex-shrink-0" /> {tFeedback.improvements}
+                        <h3 className="font-bold text-red-600 mb-4 flex items-center gap-2">
+                            <XCircle size={20} /> {tFeedback.improvements}
                         </h3>
-                        <ul className="space-y-3 md:space-y-4">
+                        <ul className="space-y-3">
                             {cons.map((item, idx) => (
-                                <motion.li 
-                                    key={idx} 
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.45 + idx * 0.05 }}
-                                    className="flex items-start gap-2 md:gap-3 text-orange-700 text-sm md:text-base leading-relaxed"
-                                >
-                                    <span className="w-2 h-2 md:w-2.5 md:h-2.5 bg-orange-500 rounded-full flex-shrink-0 mt-1.5 md:mt-2" />
+                                <li key={idx} className="flex items-start gap-3 text-slate-600 text-sm leading-relaxed">
+                                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0 mt-2" />
                                     <span>{item}</span>
-                                </motion.li>
+                                </li>
                             ))}
                         </ul>
                     </motion.div>
@@ -244,38 +232,38 @@ function SalesLabFeedbackContent({ result, onRestart, onBack, onViewHistory }) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 md:p-8 rounded-2xl md:rounded-3xl border border-purple-100 shadow-lg"
+                    className="bg-gradient-to-r from-violet-600 to-indigo-600 p-8 rounded-2xl shadow-lg text-white"
                 >
-                    <h3 className="font-bold text-base md:text-lg text-purple-800 mb-3 md:mb-4">
-                        🎯 {tFeedback.nextMission || "Recommended Next Training"}
-                    </h3>
-                    <div className="flex items-center justify-between">
+                    <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm md:text-base font-semibold text-purple-900">{recommendedMission?.title || "Improve Your Skills"}</p>
-                            <p className="text-xs md:text-sm text-purple-700 mt-1">Perfect for your next training session</p>
+                            <h3 className="font-bold text-indigo-100 mb-2 uppercase tracking-wider text-xs">
+                                🎯 {tFeedback.nextMission || "Recommended Next Training"}
+                            </h3>
+                            <p className="text-xl font-bold">{recommendedMission?.title || "Improve Your Skills"}</p>
+                            <p className="text-indigo-200 text-sm mt-1">Perfect for your next training session</p>
                         </div>
-                        <div className="text-2xl md:text-3xl font-bold text-purple-600">+{recommendedMission?.xp || 50} XP</div>
+                        <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl font-black text-2xl border border-white/20">+{recommendedMission?.xp || 50} XP</div>
                     </div>
                 </motion.div>
 
-                {/* Action Buttons - Mobile Optimized */}
+                {/* Action Buttons */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.55 }}
-                    className="flex flex-col-reverse md:flex-row gap-3 md:gap-4 pt-4 md:pt-6 border-t border-gray-200"
+                    className="flex flex-col-reverse md:flex-row gap-4 pt-6"
                 >
                     <button
                         onClick={onBack}
-                        className="flex-1 px-4 md:px-6 py-3 md:py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm md:text-base rounded-xl md:rounded-2xl transition-all duration-200 hover:shadow-md"
+                        className="flex-1 px-6 py-4 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold rounded-xl transition-all"
                     >
                         ← {tFeedback.backButton || "Back"}
                     </button>
                     <button
                         onClick={onRestart}
-                        className="flex-1 px-4 md:px-6 py-3 md:py-3.5 bg-gradient-to-r from-primary to-primary-hover hover:shadow-lg text-white font-bold text-sm md:text-base rounded-xl md:rounded-2xl transition-all duration-200 hover:-translate-y-0.5 shadow-lg shadow-primary/30 flex items-center justify-center gap-2"
+                        className="flex-1 px-6 py-4 bg-primary text-white hover:bg-primary-dark font-bold rounded-xl shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
-                        <RotateCcw size={18} className="md:w-5 md:h-5" />
+                        <RotateCcw size={18} />
                         {tFeedback.retryButton || "Try Again"}
                     </button>
                 </motion.div>

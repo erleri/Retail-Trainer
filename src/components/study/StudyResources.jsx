@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Image as ImageIcon, Film, Lock } from 'lucide-react';
+import { FileText, Image as ImageIcon, Film, Lock, RefreshCw } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { translations } from '../../constants/translations';
-import { localDB } from '../../lib/storage';
+import { operatorApi } from '../../services/operatorApi'; // Changed source
 
 export default function StudyResources() {
     const { language } = useAppStore();
@@ -11,19 +11,23 @@ export default function StudyResources() {
 
     // State
     const [files, setFiles] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const loadFiles = async () => {
+        setLoading(true);
         try {
-            const savedFiles = await localDB.getFiles();
-            setFiles(savedFiles.sort((a, b) => b.date - a.date));
+            // Refinement #3: Fetch from Content Engine (Mock)
+            const res = await operatorApi.getMaterials();
+            if (res.success) {
+                setFiles(res.data.materials.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            }
         } catch (e) {
             console.error("Failed to load resources", e);
         }
+        setLoading(false);
     };
 
-    // Load files from IndexedDB on mount
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadFiles();
     }, []);
 
@@ -38,32 +42,46 @@ export default function StudyResources() {
 
     return (
         <div className="space-y-6">
-            <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
-                <h3 className="text-lg font-bold text-blue-800 mb-2">Learning Resources</h3>
-                <p className="text-blue-600">
-                    Access study materials uploaded by administrators. Use these resources to prepare for quizzes and improve your sales skills.
-                </p>
+            <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 flex justify-between items-center">
+                <div>
+                    <h3 className="text-lg font-bold text-blue-800 mb-2">Learning Resources</h3>
+                    <p className="text-blue-600">
+                        Access study materials uploaded by administrators.
+                    </p>
+                </div>
+                <button onClick={loadFiles} className="p-2 bg-blue-100 rounded-full text-blue-600 hover:bg-blue-200 transaction-colors">
+                    <RefreshCw size={20} />
+                </button>
             </div>
 
             {/* File List */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {files.length === 0 && (
+                {files.length === 0 && !loading && (
                     <div className="col-span-full text-center py-10 text-gray-400">
                         {t?.empty || "No resources uploaded yet."}
                     </div>
                 )}
 
+                {loading && <div className="p-10 text-center">Loading Content Engine...</div>}
+
                 {files.map(file => (
-                    <div key={file.id} className="glass-card p-4 rounded-xl border border-white/20 bg-white/50 flex items-center gap-4 group hover:shadow-md transition-all">
+                    <div key={file.materialId} className="glass-card p-4 rounded-xl border border-white/20 bg-white/50 flex items-center gap-4 group hover:shadow-md transition-all relative overflow-hidden">
+                        {/* Version Indicator (Refinement #3) */}
+                        {(file.version && file.version > 1) && (
+                            <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
+                                v{file.version}
+                            </div>
+                        )}
+
                         <div className="p-3 bg-white rounded-lg shadow-sm">
                             {getIcon(file.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-text-primary truncate">{file.name}</h4>
+                            <h4 className="font-bold text-text-primary truncate">{file.title}</h4>
                             <div className="flex items-center gap-2 text-xs text-text-secondary">
-                                <span>{file.size}</span>
+                                <span className="uppercase bg-slate-100 px-1 rounded">{file.category}</span>
                                 <span>•</span>
-                                <span>{new Date(file.date).toLocaleDateString()}</span>
+                                <span>{new Date(file.createdAt).toLocaleDateString()}</span>
                             </div>
                         </div>
                     </div>
